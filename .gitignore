@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+
+# Herramientas
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Secretos y entorno local
+.env
+.env.*
+!.env.example
+
+# Artefactos de entrenamiento y experimentos (nunca al repo)
+artifacts/
+mlruns/
+mlartifacts/
+checkpoints/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+
+# Datos intermedios regenerables (los sample_* de data/processed SÍ se versionan)
+data/interim/
+
+# Cachés de modelos
+.hf_cache/
+.cache/
+
+# IDE / SO
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

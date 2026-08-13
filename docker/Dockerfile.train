@@ -1,0 +1,69 @@
+# Imagen de entrenamiento QLoRA reproducible (CUDA 12.4 + versiones fijadas).
+#
+# Se construye con:  docker compose --profile train build trainer
+# Requisitos host:   WSL2 + driver NVIDIA de Windows + nvidia-container-toolkit
+# Verificación:      docker run --rm --gpus all adapterforge-trainer nvidia-smi
+
+FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+
+# Evitar prompts interactivos y fijar locale básico.
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
+# Python 3.12 desde deadsnakes (Ubuntu 22.04 trae 3.10 por defecto).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        software-properties-common ca-certificates git curl \
+    && add-apt-repository -y ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y --no-install-recommends \
+        python3.12 python3.12-venv python3.12-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Usuario no root (buenas prácticas: nada corre como root en el contenedor).
+RUN useradd --create-home --uid 1000 trainer
+USER trainer
+WORKDIR /workspace
+
+# Entorno virtual propio del usuario.
+ENV VIRTUAL_ENV=/home/trainer/venv
+RUN python3.12 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# --- Stack de entrenamiento con VERSIONES FIJADAS (verificadas juntas) -------
+# torch con ruedas CUDA 12.4; el resto desde PyPI.
+RUN pip install --upgrade pip==25.1.1 \
+    && pip install torch==2.6.0 \
+    && pip install \
+        transformers==4.55.4 \
+        trl==0.19.1 \
+        peft==0.16.0 \
+        bitsandbytes==0.46.1 \
+        datasets==3.6.0 \
+        accelerate==1.9.0 \
+        mlflow==2.22.0
+
+# --- Unsloth fijado a la era torch 2.6/cu124 (pareja verificada) --------------
+RUN pip install "xformers==0.0.29.post3" \
+    && pip install \
+        "unsloth==2025.8.*" \
+        "unsloth_zoo==2025.8.*" \
+        torchao==0.12.0 \
+        torch==2.6.0 \
+        transformers==4.55.4 \
+        trl==0.19.1 \
+        peft==0.16.0 \
+        bitsandbytes==0.46.1 \
+        datasets==3.6.0 \
+        accelerate==1.9.0
+
+# El código se monta como volumen (./:/workspace); instalamos solo metadatos
+# del paquete en editable para resolver imports de adapterforge.
+COPY --chown=trainer:trainer pyproject.toml README.md /workspace/
+COPY --chown=trainer:trainer src /workspace/src
+RUN pip install -e /workspace --no-deps \
+    && pip install "pydantic>=2.7,<3" "pydantic-settings>=2.2,<3" "pyyaml>=6.0,<7" \
+        "httpx>=0.27,<1"
+# NOTA: litellm no se instala en la imagen de entrenamiento (solo lo usa la
+# síntesis/juez, que corren fuera del contenedor de GPU).
+
+CMD ["python", "-m", "adapterforge.train.sft", "--config", "configs/qlora_smoke.yaml", "--smoke"]

@@ -1,0 +1,87 @@
+# AdapterForge — orquestación local (WSL2 + Docker Engine + nvidia-container-toolkit).
+#
+# Perfiles:
+#   train       -> contenedor de entrenamiento CUDA (GPU reservada)
+#   track       -> MLflow en http://localhost:5000
+#   serve-vllm  -> vLLM OpenAI-compatible con --enable-lora (multi-adapter)
+#
+# Ejemplos:
+#   docker compose --profile train run --rm trainer
+#   docker compose --profile track up -d mlflow
+#   docker compose --profile serve-vllm up vllm
+
+services:
+  trainer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.train
+    image: adapterforge-trainer:latest
+    profiles: ["train"]
+    working_dir: /workspace
+    command: python -m adapterforge.train.sft --config configs/qlora_smoke.yaml --smoke
+    environment:
+      - HF_HOME=/workspace/.hf_cache
+      - AF_MLFLOW_TRACKING_URI=http://mlflow:5000
+      - AF_API_BASE=http://host.docker.internal:11434/v1
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ./:/workspace
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Ollama del host desde el contenedor
+    shm_size: "8gb"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.22.0
+    profiles: ["track", "train"]
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --artifacts-destination /mlflow/artifacts
+    ports:
+      - "5000:5000"
+    volumes:
+      - mlflow-data:/mlflow
+
+  # Servido de producción en GPU: una única base residente + N adapters LoRA.
+  # Guía completa y ejemplos de peticiones en serve/vllm_lora/README.md.
+  vllm:
+    image: vllm/vllm-openai:v0.8.5
+    profiles: ["serve-vllm"]
+    command: >
+      --model Qwen/Qwen3-4B-Instruct-2507
+      --max-model-len 4096
+      --gpu-memory-utilization 0.90
+      --enable-lora
+      --max-lora-rank 32
+      --lora-modules juristune=/adapters/juristune
+    ports:
+      - "8000:8000"
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      - ./artifacts/qlora_qwen3-4b/adapter:/adapters/juristune:ro
+      - hf-cache:/root/.cache/huggingface
+    ipc: host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  mlflow-data:
+  hf-cache:

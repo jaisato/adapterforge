@@ -1,0 +1,11 @@
+# Modelfile de Ollama para JurisTune (renderizado por
+# `python -m adapterforge.serve.render_modelfile`).
+# Host recomendado para contenedores: http://host.docker.internal:11434
+
+FROM {{ gguf_path }}
+
+SYSTEM """{{ system_prompt }}"""
+
+PARAMETER temperature {{ temperature }}
+PARAMETER num_ctx {{ num_ctx }}
+PARAMETER repeat_penalty 1.1

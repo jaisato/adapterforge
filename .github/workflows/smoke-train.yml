@@ -1,0 +1,47 @@
+# Test de humo de entrenamiento en el runner self-hosted con GPU (WSL2).
+# En cada PR que toque entrenamiento o configs: entrena 30 pasos reales y
+# verifica que la loss desciende (parseando el metrics.json del run).
+name: smoke-train
+
+on:
+  pull_request:
+    paths:
+      - "src/adapterforge/train/**"
+      - "configs/**"
+      - "docker/Dockerfile.train"
+      - "compose.yaml"
+      - "data/processed/sample_sft.jsonl"
+  workflow_dispatch:
+
+concurrency:
+  group: smoke-train-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    # Runner propio con GPU (los runners gratuitos de GitHub no tienen).
+    # Etiquetas configuradas al registrar el runner en la máquina WSL2.
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar GPU disponible
+        run: nvidia-smi
+
+      - name: Construir imagen de entrenamiento
+        run: docker compose --profile train build trainer
+
+      - name: Smoke-train (30 pasos, QLoRA sobre modelo pequeño)
+        run: make train-smoke
+
+      - name: Verificar que la loss desciende
+        run: python3 scripts/check_smoke.py artifacts/smoke/metrics.json
+
+      - name: Subir métricas como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-metrics
+          path: artifacts/smoke/metrics.json
+          if-no-files-found: ignore

@@ -1,0 +1,21 @@
+# Smoke-train para CI (runner self-hosted con GPU) y validación local rápida.
+# Modelo diminuto y sin gating para que el job tarde < 10 min descargas incluidas.
+name: qlora-smoke
+base_model: HuggingFaceTB/SmolLM2-360M-Instruct
+dataset_path: data/processed/sample_sft.jsonl
+output_dir: artifacts/smoke
+
+seq_len: 512
+lr: 2.0e-4
+epochs: 1
+batch_size: 2
+grad_accum: 4
+warmup_ratio: 0.03
+seed: 42
+max_steps: 30 # smoke: la loss debe bajar en 30 pasos
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]

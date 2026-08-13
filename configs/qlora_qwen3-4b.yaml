@@ -1,0 +1,20 @@
+# Experimento principal: JurisTune sobre Qwen3-4B en 8 GB de VRAM.
+# Estimación: ~3.7-5 GB con NF4 + gradient checkpointing (menos con Unsloth).
+name: juristune-qwen3-4b
+base_model: Qwen/Qwen3-4B-Instruct-2507
+dataset_path: data/processed/juristune_train.jsonl # sustituir por el dataset completo
+output_dir: artifacts/qlora_qwen3-4b
+
+seq_len: 1536
+lr: 2.0e-4
+epochs: 2
+batch_size: 1
+grad_accum: 16
+warmup_ratio: 0.03
+seed: 42
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.0
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]

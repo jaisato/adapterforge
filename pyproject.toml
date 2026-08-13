@@ -1,0 +1,90 @@
+# AdapterForge — fábrica reproducible de adapters QLoRA en GPU de 8 GB.
+#
+# Filosofía de dependencias:
+#   - El núcleo (pipeline de datos, configs, métricas) solo necesita deps ligeras.
+#   - Todo lo pesado (torch, transformers, trl, peft, mlflow, datasets) vive en
+#     grupos opcionales y se importa SIEMPRE de forma perezosa (lazy).
+
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "adapterforge"
+version = "0.1.0"
+description = "Fábrica reproducible de adapters LoRA/QLoRA (dataset -> SFT -> DPO -> eval -> serving) en una GPU de 8 GB con Docker/WSL2/CUDA"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Jairo Sarabia", email = "jairosarabia@gmail.com" }]
+requires-python = ">=3.12"
+keywords = ["qlora", "lora", "fine-tuning", "trl", "peft", "llm", "boe"]
+dependencies = [
+    # Núcleo mínimo: validación de configs, YAML, cliente LLM y HTTP.
+    "pydantic>=2.7,<3",
+    "pydantic-settings>=2.2,<3",
+    "pyyaml>=6.0,<7",
+    "httpx>=0.27,<1",
+    "litellm>=1.48,<2",
+]
+
+[project.urls]
+Repository = "https://github.com/jairosarabia/adapterforge"
+"Hugging Face" = "https://huggingface.co/Jaisato"
+
+[project.optional-dependencies]
+# Calidad: tests sin GPU ni red (respx mockea el path HTTP OpenAI-compatible).
+dev = [
+    "pytest>=8.2,<9",
+    "ruff>=0.6,<1",
+    "respx>=0.21,<1",
+]
+# Entrenamiento QLoRA (solo dentro del contenedor docker/Dockerfile.train o en
+# un entorno WSL2 con CUDA). Instalar torch con el índice CUDA adecuado:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu124
+train = [
+    "torch>=2.5,<2.8",
+    "transformers>=4.51,<4.57",
+    "trl>=0.17,<0.20",
+    "peft>=0.15,<0.18",
+    "bitsandbytes>=0.45,<0.48",
+    "datasets>=3.0,<5",
+    "accelerate>=1.0,<2",
+    # "unsloth>=2025.7",  # OPCIONAL: acelera 1.5-2x y reduce VRAM. No se fija
+    # aquí porque su instalación depende de la versión exacta de torch/CUDA.
+    # Instalación recomendada dentro del contenedor de entrenamiento:
+    #   pip install unsloth
+    # El código lo detecta con try-import y funciona igual sin él (ver
+    # src/adapterforge/train/runtime.py).
+]
+# Evaluación de capacidades generales con lm-evaluation-harness (OPCIONAL:
+# pesado; ver scripts/lm_eval_runner.sh para el uso documentado).
+eval = [
+    "lm-eval>=0.4.4,<0.5",
+]
+# Tracking de experimentos con MLflow (servidor en compose.yaml, puerto 5000).
+track = [
+    "mlflow>=2.15,<4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/adapterforge"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+extend-exclude = ["space"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errores
+    "W",   # pycodestyle avisos
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

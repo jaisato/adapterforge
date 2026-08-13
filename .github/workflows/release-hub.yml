@@ -1,0 +1,73 @@
+# Release con quality gate: al taggear v*, evalúa el adapter con el benchmark
+# de dominio y, solo si supera el umbral, lo publica en Hugging Face Hub.
+#
+# Secrets necesarios (Settings > Secrets and variables > Actions):
+#   HF_TOKEN  -> token de escritura del namespace Jaisato
+name: release-hub
+
+on:
+  push:
+    tags: ["v*"]
+
+env:
+  ADAPTER_DIR: artifacts/qlora_qwen3-4b/adapter
+  METRICS: artifacts/qlora_qwen3-4b/metrics.json
+  BENCH_MIN_SCORE: "0.55"
+
+jobs:
+  evaluate-and-publish:
+    # GPU necesaria para servir el adapter durante la evaluación.
+    runs-on: [self-hosted, gpu]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar núcleo + huggingface_hub
+        run: |
+          pip install -e .
+          pip install "huggingface_hub>=0.30,<1"
+
+      - name: Levantar vLLM con el adapter (multi-LoRA)
+        run: |
+          docker compose --profile serve-vllm up -d vllm
+          # Espera activa al endpoint OpenAI-compatible (máx. 10 min: descarga
+          # de la base en el primer arranque).
+          for i in $(seq 1 120); do
+            if curl -sf http://localhost:8000/v1/models > /dev/null; then break; fi
+            sleep 5
+          done
+          curl -sf http://localhost:8000/v1/models
+
+      - name: Benchmark de dominio con quality gate
+        run: |
+          python -m adapterforge.eval.domain_bench \
+            --api-base http://localhost:8000/v1 \
+            --model juristune \
+            --output artifacts/eval/adapter.json \
+            --min-score "${BENCH_MIN_SCORE}"
+
+      - name: Publicar adapter en HF Hub (solo si el gate pasó)
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python -m adapterforge.serve.push_to_hub \
+            --adapter-dir "${ADAPTER_DIR}" \
+            --metrics "${METRICS}" \
+            --bench-results artifacts/eval/adapter.json \
+            --repo-id Jaisato/juristune-qwen3-4b-lora
+
+      - name: Apagar vLLM
+        if: always()
+        run: docker compose --profile serve-vllm down
+
+      - name: Subir resultados de evaluación
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-eval
+          path: artifacts/eval/adapter.json
+          if-no-files-found: ignore

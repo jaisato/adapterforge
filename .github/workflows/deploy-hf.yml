@@ -1,0 +1,30 @@
+# Despliegue de la demo pública (HF Space, CPU): sincroniza la carpeta space/
+# con el Space Jaisato/adapterforge-demo. El Space carga el GGUF Q4_K_M desde
+# HF Hub con llama-cpp-python (sin GPU).
+#
+# Secrets necesarios:
+#   HF_TOKEN -> token de escritura del namespace Jaisato
+name: deploy-hf
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  deploy-space:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar huggingface_hub
+        run: pip install "huggingface_hub>=0.30,<1"
+
+      - name: Subir carpeta space/ al Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python scripts/deploy_space.py --repo-id Jaisato/adapterforge-demo
