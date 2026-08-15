@@ -34,14 +34,12 @@ semillas humanas para aumentar diversidad del dataset online.
 from __future__ import annotations
 
 import argparse
-from pydoc import doc
-import zlib
 import json
 import random
 import re
+import zlib
 from pathlib import Path
 
-from annotated_types import doc
 from pydantic import BaseModel, ConfigDict, Field
 
 from adapterforge.data.extract import (
@@ -58,7 +56,7 @@ SFT_TASKS = ("resumen", "qa", "obligaciones", "llano", "extraccion")
 
 def _variant(doc_id: str, n: int, salt: str = "") -> int:
     """Índice de variante determinista por documento (reproducible)."""
-    return zlib.crc32(f"{doc_id}:{salt}".encode("utf-8")) % n
+    return zlib.crc32(f"{doc_id}:{salt}".encode()) % n
 
 # Marcadores léxicos para detectar obligaciones/plazos/sanciones en texto
 # jurídico-administrativo. Deliberadamente simples y auditables.

@@ -6,6 +6,13 @@
   para resúmenes y respuestas largas.
 - ``field_exact_match``: extrae el primer objeto JSON de la predicción y
   compara campo a campo contra el esperado (tareas de extracción).
+- ``strip_response_artifacts``: limpia bloques ``<think>`` y tokens
+  ``tool_call`` que algunos serves decodifican como texto literal.
+
+La normalización canonicaliza números: elimina separadores de miles
+(«7.500» → «7500») y convierte numerales en castellano a dígitos
+(«ocho millones» → «8000000»), de modo que una respuesta semánticamente
+correcta no puntúe 0.0 por el formato de superficie del número.
 """
 
 from __future__ import annotations
@@ -16,15 +23,146 @@ import unicodedata
 
 _PUNCT = re.compile(r"[^\w\s]", re.UNICODE)
 _SPACES = re.compile(r"\s+")
+# Separador de miles entre grupos de 3 dígitos: «7.500», «1.719.936», «600,000».
+_THOUSANDS = re.compile(r"(?<=\d)[.,](?=\d{3}(?!\d))")
+# Separador decimal u hora restante entre dígitos -> marcador que sobrevive a
+# _PUNCT («3,5», «3.5» y también «9.30»/«9:30» acaban como «3_5»/«9_30»).
+_DECIMAL = re.compile(r"(?<=\d)[.,:](?=\d)")
+# Números canónicos (con posible marcador decimal) dentro de texto normalizado.
+_NUMBER_TOKEN = re.compile(r"\d+(?:_\d+)?")
+# Artefactos de respuesta: bloque de razonamiento completo, razonamiento
+# truncado (tag <think> sin cerrar: no hay respuesta final que puntuar) y
+# tags sueltos. Los bloques <tool_call>...</tool_call> NO se eliminan
+# enteros a propósito: los adapters dañados envuelven la respuesta real en
+# esas etiquetas, así que solo se quitan los tags.
+_THINK_BLOCK = re.compile(r"<think>.*?</think>", re.DOTALL)
+_THINK_UNCLOSED = re.compile(r"<think>.*\Z", re.DOTALL)
+_SPECIAL_TAGS = re.compile(r"</?(?:think|tool_call)>")
+
+# Numerales en castellano (sin tildes: se aplican tras quitar acentos).
+_NUMBER_WORDS = {
+    "cero": 0, "un": 1, "uno": 1, "una": 1, "dos": 2, "tres": 3, "cuatro": 4,
+    "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10,
+    "once": 11, "doce": 12, "trece": 13, "catorce": 14, "quince": 15,
+    "dieciseis": 16, "diecisiete": 17, "dieciocho": 18, "diecinueve": 19,
+    "veinte": 20, "veintiun": 21, "veintiuno": 21, "veintiuna": 21,
+    "veintidos": 22, "veintitres": 23, "veinticuatro": 24, "veinticinco": 25,
+    "veintiseis": 26, "veintisiete": 27, "veintiocho": 28, "veintinueve": 29,
+    "treinta": 30, "cuarenta": 40, "cincuenta": 50, "sesenta": 60,
+    "setenta": 70, "ochenta": 80, "noventa": 90, "cien": 100, "ciento": 100,
+    "doscientos": 200, "doscientas": 200, "trescientos": 300, "trescientas": 300,
+    "cuatrocientos": 400, "cuatrocientas": 400, "quinientos": 500, "quinientas": 500,
+    "seiscientos": 600, "seiscientas": 600, "setecientos": 700, "setecientas": 700,
+    "ochocientos": 800, "ochocientas": 800, "novecientos": 900, "novecientas": 900,
+}
+_MULTIPLIERS = {"mil": 1_000, "millon": 1_000_000, "millones": 1_000_000}
+
+
+def strip_response_artifacts(text: str) -> str:
+    """Elimina bloques ``<think>...</think>`` y tags ``tool_call`` sueltos.
+
+    Los adapters entrenados con el template thinking de Unsloth abren sus
+    respuestas con estos tokens especiales, que Ollama decodifica como texto
+    literal y contaminan cualquier métrica de superficie.
+    """
+    cleaned = _THINK_BLOCK.sub("", text)
+    cleaned = _THINK_UNCLOSED.sub("", cleaned)
+    cleaned = _SPECIAL_TAGS.sub("", cleaned)
+    return cleaned.strip()
+
+
+def _parse_number_words(tokens: list[str], start: int) -> tuple[int, int]:
+    """Parsea la secuencia numérica máxima desde ``tokens[start]``.
+
+    Devuelve ``(valor, tokens_consumidos)``; ``consumidos == 0`` si en
+    ``start`` no empieza un numeral.
+    """
+    total = 0
+    current = 0
+    consumed = 0
+    saw_word = False
+    digit_seed = False
+    last_word_value: int | None = None
+    i = start
+    while i < len(tokens):
+        token = tokens[i]
+        if token in _NUMBER_WORDS:
+            value = _NUMBER_WORDS[token]
+            if digit_seed:
+                break  # «8 ocho» no es un numeral compuesto
+            if last_word_value is not None and value >= last_word_value:
+                # La composición castellana solo decrece en magnitud
+                # («ciento treinta», «treinta y cinco»); «uno dos» o
+                # «dos, tres» son numerales independientes: no se funden.
+                break
+            current += value
+            last_word_value = value
+            saw_word = True
+        elif token.isdigit():
+            # Un dígito solo abre secuencia («8 millones»); nunca se funden
+            # dos tokens numéricos consecutivos («3 5 y 7» queda intacto).
+            if saw_word or i != start:
+                break
+            current = int(token)
+            saw_word = True
+            digit_seed = True
+        elif token in _MULTIPLIERS:
+            multiplier = _MULTIPLIERS[token]
+            if multiplier >= 1_000_000:
+                if current == 0 and total == 0:
+                    # «millones» sin cuantificador («varios millones de
+                    # euros») no es un número concreto: se deja intacto.
+                    break
+                # «millones» escala todo lo acumulado: «mil millones»,
+                # «cuarenta y ocho mil ochocientos setenta y un millones».
+                total = (total + current) * multiplier
+            else:
+                total += (current or 1) * multiplier  # «veinte mil»
+            current = 0
+            last_word_value = None  # nuevo grupo tras el multiplicador
+            saw_word = True
+        elif (
+            token == "y"
+            and (current % 100) % 10 == 0
+            and 30 <= current % 100 <= 90
+            and i + 1 < len(tokens)
+            and _NUMBER_WORDS.get(tokens[i + 1], 10) < 10
+        ):
+            pass  # conector «treinta y cinco», «ciento treinta y cinco»...
+        else:
+            break
+        consumed = i - start + 1
+        i += 1
+    if not saw_word:
+        return 0, 0
+    return total + current, consumed
+
+
+def _spelled_numbers_to_digits(text: str) -> str:
+    """Convierte numerales en castellano a dígitos sobre texto ya normalizado."""
+    tokens = text.split()
+    out: list[str] = []
+    i = 0
+    while i < len(tokens):
+        value, consumed = _parse_number_words(tokens, i)
+        if consumed:
+            out.append(str(value))
+            i += consumed
+        else:
+            out.append(tokens[i])
+            i += 1
+    return " ".join(out)
 
 
 def normalize_text(text: str) -> str:
-    """Minúsculas, sin tildes, sin puntuación y con espacios colapsados."""
+    """Minúsculas, sin tildes ni puntuación, con números canonicalizados."""
     lowered = text.lower().strip()
     decomposed = unicodedata.normalize("NFKD", lowered)
     without_accents = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
-    without_punct = _PUNCT.sub(" ", without_accents)
-    return _SPACES.sub(" ", without_punct).strip()
+    canonical_digits = _DECIMAL.sub("_", _THOUSANDS.sub("", without_accents))
+    without_punct = _PUNCT.sub(" ", canonical_digits)
+    collapsed = _SPACES.sub(" ", without_punct).strip()
+    return _spelled_numbers_to_digits(collapsed)
 
 
 def exact_match(prediction: str, reference: str) -> bool:
@@ -108,13 +246,34 @@ def extract_first_json_object(text: str) -> dict | None:
     return None
 
 
+def _value_match(predicted: str, expected: str) -> bool:
+    """Compara un valor de campo con su esperado, en ambas direcciones.
+
+    Además del exact-match y del containment esperado-en-predicción, acepta
+    la dirección inversa (predicción dentro del esperado) cuando la parte
+    numérica coincide exactamente: cubre respuestas más escuetas que la
+    referencia («7500» vs «7.500 euros») sin dar por buena una fecha a la
+    que le faltan componentes («2027» vs «1 de enero de 2027»).
+    """
+    if exact_match(predicted, expected) or contains_match(predicted, expected):
+        return True
+    normalized_prediction = normalize_text(predicted)
+    normalized_expected = normalize_text(expected)
+    if not normalized_prediction or normalized_prediction not in normalized_expected:
+        return False
+    predicted_numbers = _NUMBER_TOKEN.findall(normalized_prediction)
+    return bool(predicted_numbers) and predicted_numbers == _NUMBER_TOKEN.findall(
+        normalized_expected
+    )
+
+
 def field_exact_match(prediction: str, expected: dict[str, str]) -> tuple[float, dict[str, bool]]:
     """Exact-match por campo contra el JSON de la predicción.
 
-    Para cada campo esperado: acierto si el valor normalizado coincide con el
-    del JSON de la predicción o, como red de seguridad, si aparece contenido
-    en la predicción completa (los modelos a veces responden en prosa).
-    Devuelve (fracción de aciertos, detalle por campo).
+    Para cada campo esperado: acierto si el valor del JSON de la predicción
+    casa con el esperado (:func:`_value_match`) o, como red de seguridad, si
+    el esperado aparece contenido en la predicción completa (los modelos a
+    veces responden en prosa). Devuelve (fracción de aciertos, detalle).
     """
     if not expected:
         return 0.0, {}
@@ -123,15 +282,9 @@ def field_exact_match(prediction: str, expected: dict[str, str]) -> tuple[float,
     for field, expected_value in expected.items():
         predicted_value = parsed.get(field)
         if isinstance(predicted_value, list):
-            hit = any(
-                contains_match(str(item), str(expected_value))
-                or exact_match(str(item), str(expected_value))
-                for item in predicted_value
-            )
+            hit = any(_value_match(str(item), str(expected_value)) for item in predicted_value)
         elif predicted_value is not None:
-            hit = exact_match(str(predicted_value), str(expected_value)) or contains_match(
-                str(predicted_value), str(expected_value)
-            )
+            hit = _value_match(str(predicted_value), str(expected_value))
         else:
             hit = contains_match(prediction, str(expected_value))
         detail[field] = hit

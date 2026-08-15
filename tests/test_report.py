@@ -38,6 +38,31 @@ def test_build_report_without_regressions():
     assert "Sin regresiones" in report
 
 
+def test_build_report_includes_uncertainty_section():
+    before = _results("base", extract=0.40, qa=0.50, case_scores={"c1": 1.0, "c2": 0.0})
+    after = _results("adapter", extract=0.80, qa=0.70, case_scores={"c1": 0.5, "c2": 1.0})
+    report = build_report(before, after)
+    assert "## Incertidumbre" in report
+    assert "IC 95 %" in report
+
+
+def test_build_report_flags_robust_regressions_with_repeat_ranges():
+    before = _results("base", extract=0.9, qa=0.9, case_scores={"c1": 1.0, "c2": 1.0})
+    after = _results("adapter", extract=0.3, qa=0.3, case_scores={"c1": 0.4, "c2": 0.8})
+    for case in before["cases"]:
+        case["score_min"] = case["score_max"] = case["score"]
+    # c1: rango after (0.3-0.5) disjunto del before (1.0) -> regresión robusta.
+    after["cases"][0]["score_min"] = 0.3
+    after["cases"][0]["score_max"] = 0.5
+    # c2: rango after (0.6-1.0) solapa con before (1.0) -> ruido.
+    after["cases"][1]["score_min"] = 0.6
+    after["cases"][1]["score_max"] = 1.0
+    report = build_report(before, after)
+    assert "¿Robusta?" in report
+    assert "| c1 | 1.000 | 0.400 | sí |" in report
+    assert "| c2 | 1.000 | 0.800 | no (solapa) |" in report
+
+
 def test_extract_loss_curve_ignores_non_loss_entries():
     history = [
         {"learning_rate": 1e-4},

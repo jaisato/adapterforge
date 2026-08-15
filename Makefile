@@ -7,8 +7,11 @@ DPO_CONFIG ?= configs/dpo_qwen3-4b.yaml
 SMOKE_CONFIG ?= configs/qlora_smoke.yaml
 API_BASE ?= http://localhost:11434/v1
 EVAL_MODEL ?= qwen3:4b
+BASE_MODEL ?= qwen3-base-2507-eval
+ADAPTER_MODEL ?= juristune-v2b-eval
+REPEATS ?= 3
 
-.PHONY: help data train train-smoke dpo eval eval-report export test lint mlflow clean
+.PHONY: help data train train-smoke dpo eval eval-pair eval-report export test lint mlflow clean
 
 help: ## Lista los objetivos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -35,7 +38,16 @@ dpo: ## Fase DPO sobre los pares de preferencia (perfil train)
 
 eval: ## Benchmark de dominio contra un endpoint OpenAI-compatible
 	$(PY) -m adapterforge.eval.domain_bench --api-base $(API_BASE) \
-		--model $(EVAL_MODEL) --output artifacts/eval/latest.json
+		--model $(EVAL_MODEL) --repeats $(REPEATS) --output artifacts/eval/latest.json
+
+eval-pair: ## Before/after intercalado en una sesión (n=REPEATS por caso) + informe
+	$(PY) -m adapterforge.eval.domain_bench --api-base $(API_BASE) \
+		--model $(BASE_MODEL) --model $(ADAPTER_MODEL) --repeats $(REPEATS) \
+		--output-dir artifacts/eval/pair
+	$(PY) -m adapterforge.eval.report \
+		--before artifacts/eval/pair/$(subst /,-,$(subst :,-,$(BASE_MODEL))).json \
+		--after artifacts/eval/pair/$(subst /,-,$(subst :,-,$(ADAPTER_MODEL))).json \
+		--output artifacts/eval/report_pair.md
 
 eval-report: ## Informe before/after (requiere base.json y adapter.json previos)
 	$(PY) -m adapterforge.eval.report --before artifacts/eval/base.json \

@@ -1,11 +1,21 @@
 # Modelfile de Ollama para JurisTune (renderizado por
 # `python -m adapterforge.serve.render_modelfile`).
+# TEMPLATE explícito (ChatML/Qwen3) como defensa en profundidad. OJO: en las
+# versiones de Ollama con soporte de plantillas Jinja (>=0.3x), /v1/chat usa
+# el template EMBEBIDO en el GGUF e ignora esta directiva (verificado
+# empíricamente con un template centinela el 15-08-2026). El template
+# embebido correcto se garantiza en el export (merge con el tokenizer del
+# base, no del adapter). Los PARAMETER de abajo sí aplican siempre.
 # Host recomendado para contenedores: http://host.docker.internal:11434
 
 FROM {{ gguf_path }}
+
+TEMPLATE """{{ chat_template }}"""
 
 SYSTEM """{{ system_prompt }}"""
 
 PARAMETER temperature {{ temperature }}
 PARAMETER num_ctx {{ num_ctx }}
-PARAMETER repeat_penalty 1.1
+PARAMETER repeat_penalty {{ repeat_penalty }}
+PARAMETER stop <|im_start|>
+PARAMETER stop <|im_end|>

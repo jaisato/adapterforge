@@ -83,6 +83,86 @@ def test_aggregate_by_type():
     assert aggregate([])["n_cases"] == 0
 
 
+def test_score_case_strips_response_artifacts():
+    case = {
+        "id": "c1",
+        "task_type": "extract",
+        "instruction": "i",
+        "input": "d",
+        "expected": {"plazo": "tres meses"},
+    }
+    # Preámbulo basura real de los adapters con template thinking.
+    garbage = '</tool_call>\n\n<tool_call>\n\n{"plazo": "tres meses"}'
+    assert score_case(case, garbage)["score"] == 1.0
+
+
+def test_run_bench_with_repeats_persists_predictions():
+    case = {
+        "id": "c1",
+        "task_type": "extract",
+        "instruction": "i",
+        "input": "d",
+        "expected": {"plazo": "tres meses"},
+    }
+    predictions = {"c1": ['{"plazo": "tres meses"}', '{"plazo": "un año"}',
+                          '{"plazo": "tres meses"}']}
+    results = run_bench([case], predictions, model_label="test")
+    entry = results["cases"][0]
+    assert entry["score"] == pytest.approx(2 / 3)
+    assert entry["score_min"] == 0.0
+    assert entry["score_max"] == 1.0
+    assert len(entry["repeats"]) == 3
+    assert entry["repeats"][1]["prediction"] == '{"plazo": "un año"}'
+    assert entry["repeats"][1]["score"] == 0.0
+    # Lista vacía cuenta como predicción ausente.
+    empty = run_bench([case], {"c1": []}, model_label="test")
+    assert empty["missing_predictions"] == ["c1"]
+
+
+def test_run_bench_records_generation_metadata():
+    case = {
+        "id": "c1", "task_type": "qa", "instruction": "i", "input": "d", "expected": "resp"
+    }
+    generation = {"temperature": 0.0, "repeats": 3}
+    results = run_bench([case], {"c1": "resp"}, model_label="m", generation=generation)
+    assert results["generation"] == generation
+
+
+def test_main_offline_honors_output_dir(repo_root, tmp_path):
+    from adapterforge.eval.domain_bench import main
+
+    predictions_file = tmp_path / "preds.jsonl"
+    cases = load_bench_cases(repo_root / "evals" / "domain_bench.jsonl")
+    predictions_file.write_text(
+        "\n".join(
+            f'{{"id": "{case["id"]}", "prediction": "x"}}' for case in cases
+        ),
+        encoding="utf-8",
+    )
+    out_dir = tmp_path / "resultados"
+    assert main([
+        "--bench", str(repo_root / "evals" / "domain_bench.jsonl"),
+        "--predictions", str(predictions_file),
+        "--output-dir", str(out_dir),
+    ]) == 0
+    written = list(out_dir.glob("*.json"))
+    assert len(written) == 1
+
+
+def test_main_rejects_colliding_model_filenames(tmp_path):
+    import pytest as _pytest
+
+    from adapterforge.eval.domain_bench import main
+
+    # 'a:b' y 'a-b' sanitizan al mismo archivo: debe fallar antes de generar.
+    with _pytest.raises(SystemExit):
+        main([
+            "--model", "a:b", "--model", "a-b",
+            "--api-base", "http://localhost:1",
+            "--output-dir", str(tmp_path),
+        ])
+
+
 def test_build_case_messages_shape():
     case = {
         "id": "x", "task_type": "qa", "instruction": "¿Plazo?", "input": "Texto.", "expected": "p"

@@ -145,7 +145,7 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
             print("[sft] train_on_responses_only activado (loss solo en respuestas)")
         except Exception as exc:  # noqa: BLE001 — no bloquear el train si la API cambia
             print(f"[sft] aviso: train_on_responses_only no disponible: {exc}")
-            
+
     started = time.monotonic()
     result = trainer.train()
     runtime_s = time.monotonic() - started
@@ -166,7 +166,7 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
         extra={"train_loss_mean": getattr(result, "training_loss", None)},
     )
     save_metrics(output_dir / "metrics.json", metrics)
-    
+
     # Guardia: un run divergido (NaN) no debe "completarse" en silencio (bug real v2).
     import json as _json
     import math as _math
@@ -175,7 +175,7 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
     if any(isinstance(v, float) and _math.isnan(v) for v in saved_metrics.values()):
         print("[sft] ERROR: métricas con NaN — la loss divergió; el adapter NO es válido")
         raise SystemExit(1)
-    
+
     (output_dir / "experiment.json").write_text(
         cfg.model_dump_json(indent=2) + "\n", encoding="utf-8"
     )
