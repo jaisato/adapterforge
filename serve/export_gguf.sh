@@ -36,13 +36,13 @@ python -m adapterforge.serve.merge_adapter \
 
 echo "==> [2/4] Conversión HF -> GGUF F16 (contenedor llama.cpp)"
 # El contenedor 'full' incluye los scripts de conversión de llama.cpp.
-docker run --rm -v "$(pwd):/workdir" -w /workdir "${LLAMACPP_IMAGE}" \
+docker run --rm -v "$(pwd):/workdir" "${LLAMACPP_IMAGE}" \
     --convert "/workdir/${MERGED_DIR}" \
     --outfile "/workdir/${GGUF_F16}" \
     --outtype f16
 
 echo "==> [3/4] Cuantización Q4_K_M (~4 bits, la mejor relación calidad/tamaño)"
-docker run --rm -v "$(pwd):/workdir" -w /workdir "${LLAMACPP_IMAGE}" \
+docker run --rm -v "$(pwd):/workdir" "${LLAMACPP_IMAGE}" \
     --quantize "/workdir/${GGUF_F16}" "/workdir/${GGUF_Q4}" "Q4_K_M"
 
 echo "==> [4/4] Modelfile de Ollama"

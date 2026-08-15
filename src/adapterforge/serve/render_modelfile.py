@@ -71,7 +71,7 @@ def main(argv: list[str] | None = None) -> int:
     template_text = Path(args.template).read_text(encoding="utf-8")
     rendered = render_modelfile(
         template_text,
-        gguf_path=args.gguf,
+        gguf_path=str(Path(args.gguf).resolve()),
         system_prompt=system_prompt,
         temperature=args.temperature,
         num_ctx=args.num_ctx,

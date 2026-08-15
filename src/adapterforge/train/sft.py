@@ -84,6 +84,15 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
 
         dataset = dataset.map(_to_text, remove_columns=dataset.column_names)
 
+    # Red anti-NaN: descarta ejemplos que no caben en seq_len (si el truncado se
+    # tragara la respuesta, train_on_responses_only dejaría 0 tokens -> loss NaN).
+    def _fits(example: dict) -> bool:
+        return len(tokenizer(example["text"], add_special_tokens=False).input_ids) <= cfg.seq_len
+
+    n_before = len(dataset)
+    dataset = dataset.filter(_fits)
+    print(f"[sft] descartados {n_before - len(dataset)} ejemplos > seq_len; quedan {len(dataset)}")
+
     bf16 = cuda_available and torch.cuda.is_bf16_supported()
     raw_kwargs = {
         "output_dir": str(output_dir / "trainer"),
@@ -124,6 +133,19 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
             model=model, args=sft_config, train_dataset=dataset, tokenizer=tokenizer
         )
 
+    if used_unsloth:
+        try:
+            from unsloth.chat_templates import train_on_responses_only
+
+            trainer = train_on_responses_only(
+                trainer,
+                instruction_part="<|im_start|>user\n",
+                response_part="<|im_start|>assistant\n",
+            )
+            print("[sft] train_on_responses_only activado (loss solo en respuestas)")
+        except Exception as exc:  # noqa: BLE001 — no bloquear el train si la API cambia
+            print(f"[sft] aviso: train_on_responses_only no disponible: {exc}")
+            
     started = time.monotonic()
     result = trainer.train()
     runtime_s = time.monotonic() - started
@@ -144,6 +166,16 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
         extra={"train_loss_mean": getattr(result, "training_loss", None)},
     )
     save_metrics(output_dir / "metrics.json", metrics)
+    
+    # Guardia: un run divergido (NaN) no debe "completarse" en silencio (bug real v2).
+    import json as _json
+    import math as _math
+
+    saved_metrics = _json.loads((output_dir / "metrics.json").read_text(encoding="utf-8"))
+    if any(isinstance(v, float) and _math.isnan(v) for v in saved_metrics.values()):
+        print("[sft] ERROR: métricas con NaN — la loss divergió; el adapter NO es válido")
+        raise SystemExit(1)
+    
     (output_dir / "experiment.json").write_text(
         cfg.model_dump_json(indent=2) + "\n", encoding="utf-8"
     )

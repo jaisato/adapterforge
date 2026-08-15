@@ -34,11 +34,14 @@ semillas humanas para aumentar diversidad del dataset online.
 from __future__ import annotations
 
 import argparse
+from pydoc import doc
+import zlib
 import json
 import random
 import re
 from pathlib import Path
 
+from annotated_types import doc
 from pydantic import BaseModel, ConfigDict, Field
 
 from adapterforge.data.extract import (
@@ -51,7 +54,11 @@ from adapterforge.data.extract import (
 from adapterforge.jsonl import write_jsonl
 from adapterforge.settings import get_settings
 
-SFT_TASKS = ("resumen", "qa", "obligaciones", "llano")
+SFT_TASKS = ("resumen", "qa", "obligaciones", "llano", "extraccion")
+
+def _variant(doc_id: str, n: int, salt: str = "") -> int:
+    """Índice de variante determinista por documento (reproducible)."""
+    return zlib.crc32(f"{doc_id}:{salt}".encode("utf-8")) % n
 
 # Marcadores léxicos para detectar obligaciones/plazos/sanciones en texto
 # jurídico-administrativo. Deliberadamente simples y auditables.
@@ -238,48 +245,100 @@ def _first_sentence(text: str) -> str:
     return sentences[0] if sentences else text.strip()
 
 
+_RESUMEN_INSTRUCTIONS_ESTRUCTURADO = (
+    "Elabora un resumen estructurado de la siguiente disposición con los "
+    "campos: norma, rango, órgano emisor, publicación, materias, objeto, "
+    "puntos clave por artículo, obligaciones y plazos. Cita la fuente.",
+    "Resume la disposición siguiente en formato de ficha con estos campos: "
+    "norma, rango, órgano emisor, publicación, materias, objeto, puntos "
+    "clave, obligaciones y plazos. Incluye la cita de la fuente.",
+    "Prepara una ficha-resumen de esta norma (norma, rango, órgano emisor, "
+    "publicación, materias, objeto, puntos clave por artículo, obligaciones "
+    "y plazos), citando la fuente al final.",
+)
+
+_RESUMEN_INSTRUCTIONS_PROSA = (
+    "Resume en un párrafo de 4 a 6 frases la siguiente disposición: qué "
+    "norma es, quién la publica, cuál es su objeto y qué obligaciones y "
+    "plazos principales establece. Cita la fuente al final.",
+    "Escribe un resumen breve, en prosa y sin listas, de esta disposición "
+    "indicando norma, órgano emisor, objeto y los plazos más relevantes. "
+    "Termina citando la fuente.",
+    "¿De qué trata la siguiente disposición? Contesta en un único párrafo "
+    "mencionando la norma, su objeto y sus plazos clave, y cita la fuente.",
+)
+
+
 def offline_resumen(doc: RawDocument) -> SftExample:
-    """Resumen estructurado con campos fijos y cita de la fuente."""
+    """Resumen con formato variable: ficha estructurada o prosa (50/50)."""
     _, articles = split_articles(doc.texto)
     objeto = _first_sentence(articles[0].body) if articles else _first_sentence(doc.texto)
-    key_points = []
-    for article in articles[1:5]:
-        label = article.heading.rstrip(".") if article.heading else f"Artículo {article.number}"
-        key_points.append(f"- Artículo {article.number} ({label}): {_first_sentence(article.body)}")
     obligations = find_obligation_sentences(doc.texto, limit=2)
     deadlines = find_deadlines(doc.texto, limit=4)
-    lines = [
-        f"### Resumen estructurado — {doc.short_title()}",
-        "",
-        f"- **Norma**: {doc.titulo}",
-        f"- **Rango**: {doc.rango}",
-        f"- **Órgano emisor**: {doc.organo_emisor}",
-        f"- **Publicación**: {doc.fecha_publicacion}",
-        f"- **Materias**: {', '.join(doc.materia)}",
-        f"- **Objeto**: {objeto}",
-    ]
-    if key_points:
-        lines += ["", "**Puntos clave por artículo:**", *key_points]
-    if obligations:
-        lines += ["", "**Obligaciones destacadas:**"]
-        lines += [f"- {sentence}" for sentence in obligations]
-    if deadlines:
-        lines += ["", f"**Plazos relevantes:** {'; '.join(deadlines)}."]
-    lines += ["", f"Fuente: [{doc.id}] {doc.url}"]
+
+    use_prosa = _variant(doc.id, 2, salt="resumen-formato") == 1
+
+    if not use_prosa:
+        key_points = []
+        for article in articles[1:5]:
+            label = article.heading.rstrip(".") if article.heading else f"Artículo {article.number}"
+            key_points.append(
+                f"- Artículo {article.number} ({label}): {_first_sentence(article.body)}"
+            )
+        lines = [
+            f"### Resumen estructurado — {doc.short_title()}",
+            "",
+            f"- **Norma**: {doc.titulo}",
+            f"- **Rango**: {doc.rango}",
+            f"- **Órgano emisor**: {doc.organo_emisor}",
+            f"- **Publicación**: {doc.fecha_publicacion}",
+            f"- **Materias**: {', '.join(doc.materia)}",
+            f"- **Objeto**: {objeto}",
+        ]
+        if key_points:
+            lines += ["", "**Puntos clave por artículo:**", *key_points]
+        if obligations:
+            lines += ["", "**Obligaciones destacadas:**"]
+            lines += [f"- {sentence}" for sentence in obligations]
+        if deadlines:
+            lines += ["", f"**Plazos relevantes:** {'; '.join(deadlines)}."]
+        lines += ["", f"Fuente: [{doc.id}] {doc.url}"]
+        response = "\n".join(lines)
+        pool = _RESUMEN_INSTRUCTIONS_ESTRUCTURADO
+    else:
+        sentences = [
+            f"{doc.short_title()} es una disposición de rango {doc.rango.lower()} "
+            f"publicada por {_organ_with_article(doc.organo_emisor)} el "
+            f"{format_date_es(doc.fecha_publicacion)}.",
+            f"Su objeto es el siguiente: {objeto}",
+        ]
+        if obligations:
+            sentences.append(f"Entre sus obligaciones destaca que {obligations[0].rstrip('.').lower()}.")
+        if deadlines:
+            sentences.append(f"Los plazos más relevantes son: {'; '.join(deadlines)}.")
+        sentences.append(f"Fuente: [{doc.id}] {doc.url}.")
+        response = " ".join(sentences)
+        pool = _RESUMEN_INSTRUCTIONS_PROSA
+
+    instruction = pool[_variant(doc.id, len(pool), salt="resumen-instr")]
     return SftExample(
         id=f"{doc.id}-resumen",
         doc_id=doc.id,
         task="resumen",
-        instruction=(
-            "Elabora un resumen estructurado de la siguiente disposición con los "
-            "campos: norma, rango, órgano emisor, publicación, materias, objeto, "
-            "puntos clave por artículo, obligaciones y plazos. Cita la fuente."
-        ),
+        instruction=instruction,
         input=_doc_input(doc),
-        response="\n".join(lines),
+        response=response,
         source="offline",
     )
 
+_QA_INSTRUCTIONS = (
+    "Según el texto de la disposición, ¿qué establece el artículo {numero} "
+    "{referencia}? Cita la fuente entre corchetes.",
+    "¿Qué dispone el artículo {numero} {referencia}? Responde citando la "
+    "fuente entre corchetes.",
+    "Explica el contenido del artículo {numero} {referencia} y cita la "
+    "fuente entre corchetes al final.",
+)
 
 def offline_qa(doc: RawDocument, max_questions: int = 2) -> list[SftExample]:
     """Q&A por artículo con cita en el formato del portfolio."""
@@ -301,8 +360,8 @@ def offline_qa(doc: RawDocument, max_questions: int = 2) -> list[SftExample]:
                 doc_id=doc.id,
                 task="qa",
                 instruction=(
-                    f"Según el texto de la disposición, ¿qué establece el artículo "
-                    f"{article.number} {reference}? Cita la fuente entre corchetes."
+                    _QA_INSTRUCTIONS[_variant(doc.id, len(_QA_INSTRUCTIONS), salt=f"qa-{article.number}")]
+                    .format(numero=article.number, referencia=reference)
                 ),
                 input=_doc_input(doc),
                 response=response,
@@ -313,27 +372,77 @@ def offline_qa(doc: RawDocument, max_questions: int = 2) -> list[SftExample]:
 
 
 def offline_obligaciones(doc: RawDocument) -> SftExample:
-    """Extracción estructurada en JSON de obligaciones, plazos y sanciones."""
-    payload = {
-        "obligaciones": find_obligation_sentences(doc.texto, limit=5),
-        "plazos": find_deadlines(doc.texto, limit=5),
-        "sanciones": find_sanction_sentences(doc.texto, limit=3),
-        "fuente": doc.id,
-    }
+    """Extracción de obligaciones/plazos/sanciones con formato variable."""
+    _, articles = split_articles(doc.texto)
+    articulado = "\n".join(a.body for a in articles) or doc.texto  # fallback
+    obligations = find_obligation_sentences(articulado, limit=5)
+    deadlines = find_deadlines(articulado, limit=5)
+    sanctions = find_sanction_sentences(articulado, limit=3)
+
+    fmt = _variant(doc.id, 3, salt="obligaciones-formato")
+
+    if fmt == 0:  # JSON (formato v1)
+        instruction = (
+            "Extrae las obligaciones, los plazos y las sanciones de la siguiente "
+            'disposición. Responde únicamente con un objeto JSON con las claves '
+            '"obligaciones", "plazos", "sanciones" y "fuente".'
+        )
+        payload = {
+            "obligaciones": obligations,
+            "plazos": deadlines,
+            "sanciones": sanctions,
+            "fuente": doc.id,
+        }
+        response = json.dumps(payload, ensure_ascii=False, indent=2)
+    elif fmt == 1:  # Lista en texto plano
+        instruction = (
+            "Enumera las obligaciones, los plazos y las sanciones que establece "
+            "la siguiente disposición, en tres apartados con viñetas. Cita la "
+            "fuente al final."
+        )
+        lines = ["Obligaciones:"]
+        lines += [f"- {s}" for s in obligations] or ["- (no se detectan)"]
+        lines += ["", "Plazos:"]
+        lines += [f"- {d}" for d in deadlines] or ["- (no se detectan)"]
+        lines += ["", "Sanciones:"]
+        lines += [f"- {s}" for s in sanctions] or ["- (no se detectan)"]
+        lines += ["", f"Fuente: [{doc.id}]"]
+        response = "\n".join(lines)
+    else:  # Prosa breve
+        instruction = (
+            "Describe brevemente, en prosa, qué obligaciones impone esta "
+            "disposición, con qué plazos y qué sanciones prevé. Cita la fuente."
+        )
+        parts = []
+        if obligations:
+            parts.append(f"La norma obliga, entre otras cosas, a lo siguiente: {obligations[0]}")
+        if deadlines:
+            parts.append(f"Fija plazos de {', '.join(deadlines[:3])}.")
+        if sanctions:
+            parts.append(f"En materia sancionadora: {sanctions[0]}")
+        if not parts:
+            parts.append("No se detectan obligaciones, plazos ni sanciones explícitas en el texto.")
+        parts.append(f"[{doc.id}]")
+        response = " ".join(parts)
+
     return SftExample(
         id=f"{doc.id}-obligaciones",
         doc_id=doc.id,
         task="obligaciones",
-        instruction=(
-            "Extrae las obligaciones, los plazos y las sanciones de la siguiente "
-            'disposición. Responde únicamente con un objeto JSON con las claves '
-            '"obligaciones", "plazos", "sanciones" y "fuente".'
-        ),
+        instruction=instruction,
         input=_doc_input(doc),
-        response=json.dumps(payload, ensure_ascii=False, indent=2),
+        response=response,
         source="offline",
     )
 
+_LLANO_INSTRUCTIONS = (
+    "Explica en lenguaje llano, para una persona sin formación jurídica, qué "
+    "dice {referencia} y qué obligaciones y plazos le afectan.",
+    "Explícame como si no supiera nada de derecho qué establece {referencia} "
+    "y qué tengo que hacer o tener en cuenta.",
+    "Traduce a lenguaje sencillo el contenido de {referencia}: qué regula, a "
+    "quién obliga y con qué plazos.",
+)
 
 def offline_llano(doc: RawDocument) -> SftExample:
     """Explicación en lenguaje llano para personas sin formación jurídica."""
@@ -364,23 +473,99 @@ def offline_llano(doc: RawDocument) -> SftExample:
         id=f"{doc.id}-llano",
         doc_id=doc.id,
         task="llano",
-        instruction=(
-            f"Explica en lenguaje llano, para una persona sin formación jurídica, "
-            f"qué dice {_short_ref(doc)} y qué obligaciones y plazos le afectan."
-        ),
+        instruction=_LLANO_INSTRUCTIONS[_variant(doc.id, len(_LLANO_INSTRUCTIONS), salt="llano")].format(referencia=_short_ref(doc)),
         input=_doc_input(doc),
         response="\n".join(lines),
         source="offline",
     )
 
+_EXTRACCION_PLAZO_INSTR = (
+    "Según la disposición siguiente, ¿qué plazo se establece? Responde en una "
+    "sola frase y cita la fuente entre corchetes.",
+    "Indica de forma breve el plazo que fija esta disposición, citando la "
+    "fuente entre corchetes.",
+    "¿De cuánto tiempo se dispone según esta norma? Contesta con una frase y "
+    "la cita de la fuente.",
+)
+
+_EXTRACCION_SANCION_INSTR = (
+    "¿Qué sanción o multa prevé la siguiente disposición? Responde de forma "
+    "breve citando la fuente entre corchetes.",
+    "Indica brevemente el régimen sancionador que establece esta norma, con "
+    "cita de la fuente entre corchetes.",
+)
+
+_EXTRACCION_OBLIGACION_INSTR = (
+    "¿Qué obligación principal impone la siguiente disposición y a quién? "
+    "Responde de forma breve citando la fuente.",
+    "Señala en una o dos frases la obligación más relevante que establece "
+    "esta norma, con la cita de la fuente.",
+)
+
+
+def offline_extraccion(doc: RawDocument) -> list[SftExample]:
+    """Preguntas puntuales con respuesta corta: SOLO el dato pedido + cita.
+
+    Es la tarea que ejercita el domain_bench (extract) y que la v1 no cubría:
+    enseña al modelo a responder escueto sin imponer plantillas.
+    """
+    examples: list[SftExample] = []
+    _, articles = split_articles(doc.texto)
+    articulado = "\n".join(a.body for a in articles) or doc.texto  # fallback
+    for i, deadline in enumerate(find_deadlines(articulado, limit=2)):
+        instr = _EXTRACCION_PLAZO_INSTR[_variant(doc.id, len(_EXTRACCION_PLAZO_INSTR), salt=f"ext-p{i}")]
+        examples.append(
+            SftExample(
+                id=f"{doc.id}-extraccion-plazo-{i}",
+                doc_id=doc.id,
+                task="extraccion",
+                instruction=instr,
+                input=_doc_input(doc),
+                response=f"El plazo establecido es de {deadline} [{doc.id}].",
+                source="offline",
+            )
+        )
+
+    sanctions = find_sanction_sentences(articulado, limit=1)
+    if sanctions:
+        instr = _EXTRACCION_SANCION_INSTR[_variant(doc.id, len(_EXTRACCION_SANCION_INSTR), salt="ext-s")]
+        examples.append(
+            SftExample(
+                id=f"{doc.id}-extraccion-sancion",
+                doc_id=doc.id,
+                task="extraccion",
+                instruction=instr,
+                input=_doc_input(doc),
+                response=f"{sanctions[0]} [{doc.id}].",
+                source="offline",
+            )
+        )
+
+    obligations = find_obligation_sentences(articulado, limit=1)
+    if obligations:
+        instr = _EXTRACCION_OBLIGACION_INSTR[_variant(doc.id, len(_EXTRACCION_OBLIGACION_INSTR), salt="ext-o")]
+        examples.append(
+            SftExample(
+                id=f"{doc.id}-extraccion-obligacion",
+                doc_id=doc.id,
+                task="extraccion",
+                instruction=instr,
+                input=_doc_input(doc),
+                response=f"{obligations[0]} [{doc.id}].",
+                source="offline",
+            )
+        )
+    return examples
 
 _OFFLINE_GENERATORS = {
     "resumen": lambda doc: [offline_resumen(doc)],
     "qa": offline_qa,
     "obligaciones": lambda doc: [offline_obligaciones(doc)],
     "llano": lambda doc: [offline_llano(doc)],
+    "extraccion": offline_extraccion,
 }
 
+CONTEXT_CHAR_BUDGET = 4500
 
 def build_sft_offline(
     docs: list[RawDocument],
@@ -396,6 +581,8 @@ def build_sft_offline(
             raise ValueError(f"Tarea desconocida: {task!r} (disponibles: {SFT_TASKS})")
         generated: list[SftExample] = []
         for doc in docs:
+            if len(doc.texto) > CONTEXT_CHAR_BUDGET:
+                doc = doc.model_copy(update={"texto": doc.texto[:CONTEXT_CHAR_BUDGET]})
             generated.extend(_OFFLINE_GENERATORS[task](doc))
         if max_per_task is not None and len(generated) > max_per_task:
             indices = sorted(rng.sample(range(len(generated)), max_per_task))
