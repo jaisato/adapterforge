@@ -5,6 +5,7 @@ from __future__ import annotations
 from adapterforge.data.filter import (
     apply_heuristics,
     copy_ratio,
+    dedup_by_jaccard,
     is_spanish_basic,
     stopword_ratio,
 )
@@ -39,6 +40,22 @@ def test_copy_ratio_detects_verbatim_and_allows_original():
     )
     assert copy_ratio(verbatim, source) > 0.9
     assert copy_ratio(original, source) < 0.3
+    # Una respuesta corta de extracción que cita verbatim NO es una copia:
+    # con menos palabras que el tamaño de shingle no hay «run largo» posible.
+    assert copy_ratio("antes del uno de octubre", source) == 0.0
+
+
+def test_dedup_keeps_same_short_answer_across_documents():
+    base = {"instruction": "Extrae el plazo en un objeto JSON",
+            "response": '{"plazo": "tres meses"}'}
+    records = [
+        dict(base, id="a", doc_id="BOE-A-2026-0001"),
+        dict(base, id="b", doc_id="BOE-A-2026-0002"),  # otro documento: legítimo
+        dict(base, id="c", doc_id="BOE-A-2026-0001"),  # mismo doc: duplicado real
+    ]
+    kept, removed = dedup_by_jaccard(records)
+    assert [record["id"] for record in kept] == ["a", "b"]
+    assert removed == 1
 
 
 def test_apply_heuristics_filters_by_reason(corpus):
@@ -65,6 +82,37 @@ def test_apply_heuristics_filters_by_reason(corpus):
     assert reasons["not_spanish"] == 1
     assert reasons["copy"] == 1
     assert reasons["bad_instruction"] == 1
+
+
+def test_apply_heuristics_task_minimums_boilerplate_and_input_gate():
+    valid_response = (
+        "La norma regula las ayudas del programa y establece que las solicitudes "
+        "se presentan en un plazo de tres meses desde la convocatoria oficial."
+    )
+    records = [
+        # JSON corto de extracción: legítimo (mínimo por tarea + exención idioma).
+        {"id": "json", "doc_id": "", "task": "extraccion",
+         "instruction": "Extrae el plazo en un objeto JSON",
+         "response": '{"plazo": "tres meses"}'},
+        # Boilerplate del teacher sin parsear: fuera.
+        {"id": "boiler", "doc_id": "", "task": "qa",
+         "instruction": "Pregunta sobre el artículo tres de la norma",
+         "response": "PREGUNTA: ¿Qué establece la norma sobre los plazos de la "
+                     "convocatoria? RESPUESTA: Establece un plazo de tres meses."},
+        # No-respuesta «(no se detectan)»: fuera.
+        {"id": "nodetect", "doc_id": "", "task": "obligaciones",
+         "instruction": "Enumera las obligaciones de la norma",
+         "response": "Obligaciones:\n- (no se detectan)\n\nPlazos:\n- de la que en "
+                     "un máximo de tres meses según la convocatoria oficial."},
+        # Input desbocado (la ventana debería haberlo acotado): fuera.
+        {"id": "biginput", "doc_id": "", "task": "resumen",
+         "instruction": "Resume la disposición siguiente",
+         "input": "x" * 20000, "response": valid_response},
+    ]
+    kept, reasons = apply_heuristics(records, {})
+    assert [record["id"] for record in kept] == ["json"]
+    assert reasons["boilerplate"] == 2
+    assert reasons["input_too_long"] == 1
 
 
 def test_apply_heuristics_length_bounds():

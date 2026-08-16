@@ -40,6 +40,11 @@ SYSTEM_PROMPT = (
     "no contiene la respuesta, lo dices explícitamente."
 )
 
+# Prompt neutro para ejemplos SIN documento anclado (p. ej. instrucciones
+# generales): entrenarlos bajo el contrato de grounding de JurisTune enseña
+# al modelo que ese contrato puede ignorarse.
+NEUTRAL_SYSTEM_PROMPT = "Eres un asistente útil que responde en español con claridad y rigor."
+
 DEFAULT_RATIOS = (0.90, 0.05, 0.05)
 
 
@@ -53,10 +58,17 @@ def build_user_content(record: dict[str, Any]) -> str:
 
 
 def to_chat_record(record: dict[str, Any]) -> dict[str, Any]:
-    """Ejemplo SFT -> formato conversacional ``messages``."""
+    """Ejemplo SFT -> formato conversacional ``messages``.
+
+    Los ejemplos anclados a documento llevan el system prompt de JurisTune;
+    los generales (sin ``doc_id``/``input``) llevan el prompt neutro para no
+    contradecir el contrato de grounding.
+    """
+    anchored = bool(record.get("doc_id")) and bool(str(record.get("input", "")).strip())
+    system = SYSTEM_PROMPT if anchored else NEUTRAL_SYSTEM_PROMPT
     return {
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system},
             {"role": "user", "content": build_user_content(record)},
             {"role": "assistant", "content": str(record["response"]).strip()},
         ],
@@ -91,10 +103,11 @@ def split_records(
     seed: int = 42,
     ratios: tuple[float, float, float] = DEFAULT_RATIOS,
 ) -> dict[str, list[dict[str, Any]]]:
-    """Baraja con semilla y reparte en train/val/test.
+    """Baraja con semilla y reparte en train/val/test A NIVEL DE EJEMPLO.
 
-    Determinista: la misma lista y semilla producen exactamente los mismos
-    splits. val y test reciben al menos 1 ejemplo si hay suficientes.
+    OJO: con varios ejemplos por documento esto FUGA documentos entre splits
+    (la val-loss deja de detectar sobreajuste). Para datasets anclados usa
+    :func:`split_records_by_doc`. Se mantiene para ejemplos sin doc_id.
     """
     if abs(sum(ratios) - 1.0) > 1e-6:
         raise ValueError(f"Los ratios deben sumar 1.0 (recibido {ratios})")
@@ -111,6 +124,61 @@ def split_records(
     }
 
 
+def _record_doc_id(record: dict[str, Any]) -> str | None:
+    meta = record.get("meta") or {}
+    doc_id = meta.get("doc_id") or record.get("doc_id")
+    return str(doc_id) if doc_id else None
+
+
+def split_records_by_doc(
+    records: list[dict[str, Any]],
+    seed: int = 42,
+    ratios: tuple[float, float, float] = DEFAULT_RATIOS,
+) -> dict[str, list[dict[str, Any]]]:
+    """Split agrupado por documento: ningún doc_id aparece en dos splits.
+
+    Baraja los documentos con semilla y los asigna con avidez a val y test
+    hasta cubrir sus cuotas de EJEMPLOS; el resto va a train. Los registros
+    sin doc_id (ejemplos generales) se reparten aparte a nivel de ejemplo.
+    """
+    if abs(sum(ratios) - 1.0) > 1e-6:
+        raise ValueError(f"Los ratios deben sumar 1.0 (recibido {ratios})")
+    by_doc: dict[str, list[dict[str, Any]]] = {}
+    general: list[dict[str, Any]] = []
+    for record in records:
+        doc_id = _record_doc_id(record)
+        if doc_id is None:
+            general.append(record)
+        else:
+            by_doc.setdefault(doc_id, []).append(record)
+
+    doc_ids = sorted(by_doc)
+    random.Random(seed).shuffle(doc_ids)
+    total_anchored = sum(len(v) for v in by_doc.values())
+    quota_val = round(total_anchored * ratios[1])
+    quota_test = round(total_anchored * ratios[2])
+    splits: dict[str, list[dict[str, Any]]] = {"train": [], "val": [], "test": []}
+    filled_val = filled_test = 0
+    for doc_id in doc_ids:
+        bucket = by_doc[doc_id]
+        if filled_val < quota_val:
+            splits["val"].extend(bucket)
+            filled_val += len(bucket)
+        elif filled_test < quota_test:
+            splits["test"].extend(bucket)
+            filled_test += len(bucket)
+        else:
+            splits["train"].extend(bucket)
+
+    if general:
+        general_splits = split_records(general, seed=seed, ratios=ratios)
+        for name in splits:
+            splits[name].extend(general_splits[name])
+    for offset, name in enumerate(("train", "val", "test")):
+        random.Random(seed + offset).shuffle(splits[name])
+    return splits
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Formato chat + splits del dataset")
     parser.add_argument("--input", required=True, help="Ejemplos filtrados JSONL")
@@ -119,6 +187,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prefix", default="sft", help="Prefijo de los ficheros de split")
     parser.add_argument("--dpo", action="store_true", help="Formatear pares de preferencia")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--split-by",
+        choices=["doc", "example"],
+        default="doc",
+        help="'doc' (defecto): ningún documento aparece en dos splits",
+    )
     args = parser.parse_args(argv)
 
     if not args.output_dir and not args.single_output:
@@ -133,7 +207,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[format] {count} registros -> {args.single_output}")
 
     if args.output_dir:
-        splits = split_records(formatted, seed=args.seed)
+        splitter = split_records_by_doc if args.split_by == "doc" else split_records
+        splits = splitter(formatted, seed=args.seed)
         output_dir = Path(args.output_dir)
         for split_name, split_records_ in splits.items():
             path = output_dir / f"{args.prefix}_{split_name}.jsonl"

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from adapterforge.data.format import (
+    NEUTRAL_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
     split_records,
+    split_records_by_doc,
     to_chat_record,
     to_dpo_record,
 )
@@ -49,6 +51,52 @@ def test_to_dpo_record_structure():
     assert pair["chosen"][0]["role"] == "assistant"
     assert pair["rejected"][0]["content"] == "Respuesta vaga."
     assert pair["chosen"][0]["content"] != pair["rejected"][0]["content"]
+
+
+def test_general_records_get_neutral_system_prompt():
+    general = {
+        "id": "g1",
+        "task": "general",
+        "instruction": "Nombra cinco animales con rayas.",
+        "response": "Cebra, tigre...",
+    }
+    chat = to_chat_record(general)
+    assert chat["messages"][0]["content"] == NEUTRAL_SYSTEM_PROMPT
+    anchored = dict(general, doc_id="BOE-A-2026-1", input="Texto del documento.")
+    assert to_chat_record(anchored)["messages"][0]["content"] == SYSTEM_PROMPT
+
+
+def test_split_by_doc_never_leaks_documents():
+    records = [
+        {"id": f"doc{d}-e{i}", "meta": {"doc_id": f"doc{d}"}}
+        for d in range(30)
+        for i in range(4)
+    ]
+    splits = split_records_by_doc(records, seed=42)
+    docs_per_split = {
+        name: {r["meta"]["doc_id"] for r in part} for name, part in splits.items()
+    }
+    assert docs_per_split["train"] & docs_per_split["val"] == set()
+    assert docs_per_split["train"] & docs_per_split["test"] == set()
+    assert docs_per_split["val"] & docs_per_split["test"] == set()
+    assert docs_per_split["val"] and docs_per_split["test"]
+    all_ids = [r["id"] for part in splits.values() for r in part]
+    assert sorted(all_ids) == sorted(r["id"] for r in records)
+    # Determinista y sensible a la semilla.
+    assert split_records_by_doc(records, seed=42) == splits
+    assert split_records_by_doc(records, seed=7) != splits
+
+
+def test_split_by_doc_handles_general_records():
+    anchored = [
+        {"id": f"doc{d}-e{i}", "meta": {"doc_id": f"doc{d}"}}
+        for d in range(20)
+        for i in range(3)
+    ]
+    general = [{"id": f"gen{i}", "meta": {"doc_id": None}} for i in range(20)]
+    splits = split_records_by_doc(anchored + general, seed=42)
+    all_ids = [r["id"] for part in splits.values() for r in part]
+    assert sorted(all_ids) == sorted(r["id"] for r in anchored + general)
 
 
 def test_split_deterministic_same_seed():

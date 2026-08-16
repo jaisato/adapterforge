@@ -50,11 +50,31 @@ _WORD = re.compile(r"[a-záéíóúüñ]+", re.IGNORECASE)
 DEFAULT_MIN_RESPONSE_CHARS = 60
 DEFAULT_MAX_RESPONSE_CHARS = 8000
 DEFAULT_MIN_INSTRUCTION_CHARS = 10
+DEFAULT_MAX_INPUT_CHARS = 12000  # red de seguridad: la ventana ya acota en tokens
 DEFAULT_STOPWORD_RATIO = 0.15
 DEFAULT_COPY_RATIO = 0.90
 DEFAULT_DEDUP_THRESHOLD = 0.90
 COPY_SHINGLE_K = 13  # shingles largos: solo detectan copias literales extensas
 DEDUP_SHINGLE_K = 5
+
+# Mínimos de respuesta por tarea: una extracción legítima puede ser un JSON
+# de 20 caracteres; exigirle 60 mataría justo la tarea alineada con el bench.
+MIN_RESPONSE_CHARS_BY_TASK = {"extraccion": 15}
+
+# Umbral de copia por tarea: en extracción el citado verbatim ES la tarea
+# (el bench puntúa spans exactos); en qa la respuesta enmarca una cita
+# literal. El umbral general sigue cazando la regurgitación en resumen/llano.
+MAX_COPY_RATIO_BY_TASK = {"extraccion": 1.01, "qa": 0.98}
+
+# Basura conocida: boilerplate del teacher sin parsear, no-respuestas y
+# «objetos» que son un apartado numeral pelado (regresión del separador de
+# frases: «Su objeto es el siguiente: 1.»).
+_BOILERPLATE = re.compile(
+    r"\b(?:PREGUNTA|RESPUESTA)\s*:"
+    r"|\(no se detectan\)"
+    r"|(?:objeto es el siguiente|\*\*Objeto\*\*|¿De qué trata\?\*\*|En pocas palabras,)"
+    r"\s*:?\s*\d+\.(?:\s|$)"
+)
 
 
 def tokenize(text: str) -> list[str]:
@@ -109,8 +129,24 @@ def is_spanish_basic(text: str, min_ratio: float = DEFAULT_STOPWORD_RATIO) -> bo
 
 
 def copy_ratio(response: str, source_text: str, k: int = COPY_SHINGLE_K) -> float:
-    """Cuánta parte de la respuesta es copia literal (runs de >= k palabras)."""
+    """Cuánta parte de la respuesta es copia literal (runs de >= k palabras).
+
+    Una respuesta con menos de ``k`` palabras no puede contener un «run
+    largo»: devuelve 0.0. Sin esta exención, el shingle único degenerado
+    marcaría como copia justo las respuestas cortas de extracción, cuyo
+    citado verbatim es el comportamiento deseado (v3: extraccion cayó 62 %
+    por esto antes de la exención).
+    """
+    if len(tokenize(response)) < k:
+        return 0.0
     return containment(shingles(response, k=k), shingles(source_text, k=k))
+
+
+def _doc_token(doc_id: str) -> str:
+    """Identificador de documento con dígitos transliterados a letras."""
+    return "".join(
+        chr(ord("a") + int(ch)) if ch.isdigit() else ch for ch in doc_id.lower()
+    )
 
 
 def dedup_by_jaccard(
@@ -127,7 +163,16 @@ def dedup_by_jaccard(
     kept_shingles: list[set[tuple[str, ...]]] = []
     removed = 0
     for record in records:
-        text = f"{record.get('instruction', '')} {record.get('response', '')}"
+        # El doc_id forma parte de la clave: la misma respuesta corta sobre
+        # documentos DISTINTOS es señal legítima (inputs diferentes), no un
+        # duplicado. Los clones largos de plantilla entre documentos siguen
+        # cayendo (unos tokens distintos apenas mueven el Jaccard de textos
+        # largos). ``_doc_token`` translitera los dígitos porque ``tokenize``
+        # solo conserva letras y «BOE-A-2026-0001/0002» tokenizarían igual.
+        text = (
+            f"{_doc_token(str(record.get('doc_id', '')))} "
+            f"{record.get('instruction', '')} {record.get('response', '')}"
+        )
         current = shingles(text, k=k)
         size = len(current)
         is_duplicate = False
@@ -154,29 +199,51 @@ def apply_heuristics(
     min_response_chars: int = DEFAULT_MIN_RESPONSE_CHARS,
     max_response_chars: int = DEFAULT_MAX_RESPONSE_CHARS,
     min_instruction_chars: int = DEFAULT_MIN_INSTRUCTION_CHARS,
+    max_input_chars: int = DEFAULT_MAX_INPUT_CHARS,
     max_copy_ratio: float = DEFAULT_COPY_RATIO,
     min_stopword_ratio: float = DEFAULT_STOPWORD_RATIO,
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """Aplica los filtros heurísticos y devuelve (aceptados, motivos)."""
     kept: list[dict[str, Any]] = []
-    reasons = {"too_short": 0, "too_long": 0, "bad_instruction": 0, "not_spanish": 0, "copy": 0}
+    reasons = {
+        "too_short": 0,
+        "too_long": 0,
+        "input_too_long": 0,
+        "bad_instruction": 0,
+        "boilerplate": 0,
+        "not_spanish": 0,
+        "copy": 0,
+    }
     for record in records:
         instruction = str(record.get("instruction", ""))
         response = str(record.get("response", ""))
+        task = str(record.get("task", ""))
+        min_chars = MIN_RESPONSE_CHARS_BY_TASK.get(task, min_response_chars)
         if len(instruction) < min_instruction_chars:
             reasons["bad_instruction"] += 1
             continue
-        if len(response) < min_response_chars:
+        if len(response) < min_chars:
             reasons["too_short"] += 1
             continue
         if len(response) > max_response_chars:
             reasons["too_long"] += 1
             continue
-        if not is_spanish_basic(response, min_ratio=min_stopword_ratio):
+        if len(str(record.get("input", ""))) > max_input_chars:
+            reasons["input_too_long"] += 1
+            continue
+        if _BOILERPLATE.search(response):
+            reasons["boilerplate"] += 1
+            continue
+        # El detector de idioma penaliza los JSON cortos legítimos: se exime
+        # a las respuestas que son puro JSON (las valida el formato mismo).
+        if not response.lstrip().startswith("{") and not is_spanish_basic(
+            response, min_ratio=min_stopword_ratio
+        ):
             reasons["not_spanish"] += 1
             continue
         source_text = docs_text_by_id.get(str(record.get("doc_id", "")), "")
-        if source_text and copy_ratio(response, source_text) > max_copy_ratio:
+        task_copy_ceiling = MAX_COPY_RATIO_BY_TASK.get(task, max_copy_ratio)
+        if source_text and copy_ratio(response, source_text) > task_copy_ceiling:
             reasons["copy"] += 1
             continue
         kept.append(record)
@@ -277,6 +344,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", default=None, help="JSON con estadísticas del filtrado")
     parser.add_argument("--dedup-threshold", type=float, default=DEFAULT_DEDUP_THRESHOLD)
     parser.add_argument("--max-copy-ratio", type=float, default=DEFAULT_COPY_RATIO)
+    parser.add_argument(
+        "--max-task-drop",
+        type=float,
+        default=0.5,
+        help="Fracción máxima de una tarea que el filtrado puede eliminar (gate)",
+    )
     parser.add_argument("--judge", action="store_true", help="Activa el LLM-judge (requiere API)")
     parser.add_argument("--judge-model", default=None, help="Default: AF_JUDGE_MODEL")
     parser.add_argument("--judge-min-score", type=int, default=3, choices=range(1, 6))
@@ -308,6 +381,31 @@ def main(argv: list[str] | None = None) -> int:
             api_key=args.api_key,
         )
 
+    # Gate de composición: ningún filtrado puede vaciar una tarea en silencio
+    # (lección v2b: el filtro de longitud aniquiló extraccion y el teacher).
+    def _by_task(rows: list[dict[str, Any]]) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for row in rows:
+            task = str(row.get("task", "?"))
+            counts[task] = counts.get(task, 0) + 1
+        return counts
+
+    task_in = _by_task(records)
+    task_out = _by_task(kept)
+    task_drop = {
+        task: round(1 - task_out.get(task, 0) / total, 3)
+        for task, total in sorted(task_in.items())
+        if total
+    }
+    print(f"[filter] composición por tarea (entrada -> salida): "
+          f"{ {t: (task_in[t], task_out.get(t, 0)) for t in sorted(task_in)} }")
+    excessive = {t: d for t, d in task_drop.items() if d > args.max_task_drop}
+    if excessive:
+        raise SystemExit(
+            f"[filter] GATE: el filtrado elimina más del {args.max_task_drop:.0%} "
+            f"de alguna tarea: {excessive}. Revisa los filtros antes de entrenar."
+        )
+
     count = write_jsonl(args.output, kept)
     stats = {
         "input": len(records),
@@ -315,6 +413,7 @@ def main(argv: list[str] | None = None) -> int:
         "removed_heuristics": reasons,
         "removed_dedup": dedup_removed,
         "removed_judge": judge_removed,
+        "task_drop": task_drop,
     }
     if args.report:
         report_path = Path(args.report)
