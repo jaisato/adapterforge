@@ -11,6 +11,40 @@ from typing import Any
 
 from adapterforge.config import ExperimentConfig
 
+# Template de chat OFICIAL de Qwen3-*-Instruct-2507, versionado en el repo.
+# El mirror de Unsloth trae la variante thinking (inyecta '<think>\n\n</think>'
+# en cada turno de assistant): entrenar con ella quemó ese prefijo en los
+# pesos de v1/v2/v2b. El template correcto se fuerza SIEMPRE antes de
+# renderizar y se propaga al adapter guardado y al modelo mergeado.
+OFFICIAL_CHAT_TEMPLATE_PATH = (
+    Path(__file__).parent / "templates" / "qwen3_instruct_2507.chat_template.jinja"
+)
+
+
+def load_official_chat_template() -> str:
+    """Lee el template oficial versionado (falla ruidosamente si no está)."""
+    template = OFFICIAL_CHAT_TEMPLATE_PATH.read_text(encoding="utf-8")
+    if "<think>" in template:
+        raise RuntimeError(
+            f"{OFFICIAL_CHAT_TEMPLATE_PATH} contiene '<think>': no es el "
+            "template de la variante Instruct-2507 (no pensante)"
+        )
+    return template
+
+
+def git_sha() -> str | None:
+    """SHA corto del HEAD actual (None si git no está disponible)."""
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, timeout=10, check=True,
+        )
+        return result.stdout.strip() or None
+    except Exception:  # noqa: BLE001 — best effort: sin git no se bloquea el run
+        return None
+
 
 def emit_vram_warnings(cfg: ExperimentConfig) -> list[str]:
     """Emite (y devuelve) los avisos suaves de presupuesto de VRAM.

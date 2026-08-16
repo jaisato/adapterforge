@@ -16,6 +16,35 @@ REPEATS ?= 3
 help: ## Lista los objetivos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
+data-v3: ## Ingesta v3: síntesis con ventana estructural + filtro + splits por doc
+	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl \
+		--output data/interim/sft_raw_v3.jsonl --offline --balance default
+	$(PY) -m adapterforge.data.filter --input data/interim/sft_raw_v3.jsonl \
+		--corpus data/interim/documents.jsonl \
+		--output data/interim/sft_filtered_v3.jsonl \
+		--report data/interim/filter_report_v3.json
+	$(PY) -m adapterforge.data.format --input data/interim/sft_filtered_v3.jsonl \
+		--output-dir data/processed --prefix juristune-v3 --split-by doc
+
+data-v3-teacher: data-v3 ## Ejemplos qa del teacher (ventana anclada) + filtro con juez LLM
+	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl \
+		--output data/interim/sft_teacher_v3.jsonl --tasks qa --max-docs 250 \
+		--backend openai --api-base $(API_BASE) --model qwen2.5:7b-instruct \
+		--token-budget 900
+	$(PY) -m adapterforge.data.filter --input data/interim/sft_teacher_v3.jsonl \
+		--corpus data/interim/documents.jsonl \
+		--output data/interim/sft_teacher_v3_filtered.jsonl \
+		--report data/interim/filter_report_v3_teacher.json \
+		--judge --judge-model qwen2.5:7b-instruct --backend openai --api-base $(API_BASE)
+	cat data/interim/sft_filtered_v3.jsonl data/interim/sft_teacher_v3_filtered.jsonl \
+		> data/interim/sft_v3_full.jsonl
+	$(PY) -m adapterforge.data.format --input data/interim/sft_v3_full.jsonl \
+		--output-dir data/processed --prefix juristune-v3 --split-by doc
+
+train-v3: ## SFT v3 (template oficial + val + early stopping) en el contenedor CUDA
+	docker compose --profile train run --rm trainer \
+		python -m adapterforge.train.sft --config configs/qlora_qwen3-4b_v3.yaml
+
 data: ## Pipeline de datos completo en modo offline (sin API)
 	$(PY) -m adapterforge.data.extract --input data/raw/sample_corpus.jsonl --output data/interim/documents.jsonl
 	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl --output data/interim/sft_raw.jsonl --offline --max-per-task 10

@@ -2,16 +2,28 @@
 
 Lee un ``ExperimentConfig`` (configs/*.yaml), entrena el adapter y guarda:
 
-- ``<output_dir>/adapter/``: pesos LoRA + tokenizer.
-- ``<output_dir>/metrics.json``: loss inicial/final, pasos, runtime, flags.
+- ``<output_dir>/adapter/``: pesos LoRA + tokenizer (con el chat template
+  OFICIAL de Qwen3-Instruct-2507, no el del mirror de Unsloth).
+- ``<output_dir>/metrics.json``: loss inicial/final, eval_loss, pasos,
+  runtime, git_sha, flags.
 - ``<output_dir>/experiment.json``: configuración resuelta (reproducibilidad).
+
+Salvaguardas (lecciones de v1/v2/v2b):
+
+- El chat template oficial se fuerza SIEMPRE antes de renderizar y se
+  aborta si un render de muestra contiene ``<think>``/``<tool_call>``.
+- Con ``val_dataset_path`` en el config: eval_loss periódica, checkpoints,
+  ``load_best_model_at_end`` y early stopping — se publica el mejor estado,
+  no el último (el más sobreajustado).
+- Una loss no finita aborta el run ANTES de guardar nada
+  (:class:`adapterforge.train.callbacks.AbortOnNonFiniteLoss`).
 
 Modo ``--smoke``: fuerza ``max_steps=30`` para el test de humo en CI (runner
 self-hosted con GPU); el workflow verifica que la loss final < inicial.
 
 Uso::
 
-    python -m adapterforge.train.sft --config configs/qlora_qwen3-4b.yaml
+    python -m adapterforge.train.sft --config configs/qlora_qwen3-4b_v3.yaml
     python -m adapterforge.train.sft --config configs/qlora_smoke.yaml --smoke
     python -m adapterforge.train.sft --config ... --mlflow   # tracking opcional
 
@@ -36,19 +48,49 @@ from adapterforge.train.common import (
     emit_vram_warnings,
     extract_loss_curve,
     filter_kwargs_for_dataclass,
+    git_sha,
+    load_official_chat_template,
     log_to_mlflow,
     save_metrics,
 )
 
 SMOKE_MAX_STEPS = 30
+# Cada 50 pasos: ~10 evals en un run de ~512 pasos. A batch 1 (sin riesgo de
+# OOM en 8 GB), evaluar 233 ejemplos cuesta ~100 s; a cadencia 25 el run se
+# alargaba ~34 min (medido por la revisión contra la imagen real).
+EVAL_EVERY_STEPS = 50
+EARLY_STOPPING_PATIENCE = 4  # evals sin mejora (4 x 50 pasos) antes de parar
+
+# Tokens que jamás deben aparecer en un render de entrenamiento de la
+# variante Instruct-2507 (no pensante, sin tools en nuestros datos).
+_FORBIDDEN_RENDER_TOKENS = ("<think>", "</think>", "<tool_call>", "</tool_call>")
+
+
+def _assert_clean_render(texts: list[str]) -> None:
+    """Aborta si el render de muestra está contaminado o mal formado."""
+    for text in texts:
+        for token in _FORBIDDEN_RENDER_TOKENS:
+            if token in text:
+                raise SystemExit(
+                    f"[sft] ABORTADO: el render contiene {token!r} — el chat "
+                    "template no es el oficial de Instruct-2507. Ningún "
+                    "adapter debe entrenarse así (defecto v1/v2/v2b)."
+                )
+        if "<|im_start|>assistant\n" not in text:
+            raise SystemExit(
+                "[sft] ABORTADO: el render no contiene el turno de assistant "
+                "esperado; revisa el chat template y el formato de mensajes."
+            )
 
 
 def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
     """Ejecuta el SFT completo. Todos los imports pesados viven aquí."""
     import torch
     from datasets import load_dataset
+    from transformers import EarlyStoppingCallback
     from trl import SFTConfig, SFTTrainer
 
+    from adapterforge.train.callbacks import AbortOnNonFiniteLoss
     from adapterforge.train.runtime import load_model_and_tokenizer
 
     emit_vram_warnings(cfg)
@@ -67,31 +109,50 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
 
     model, tokenizer, used_unsloth = load_model_and_tokenizer(cfg)
 
-    dataset = load_dataset("json", data_files=str(cfg.dataset_path), split="train")
-    if "meta" in dataset.column_names:
-        dataset = dataset.remove_columns(["meta"])
+    # El tokenizer del mirror de Unsloth trae el template de la variante
+    # thinking; se sobreescribe SIEMPRE con el oficial versionado en el repo.
+    tokenizer.chat_template = load_official_chat_template()
+    print("[sft] chat template oficial de Qwen3-Instruct-2507 forzado (sin <think>)")
 
-    # El SFTTrainer parcheado por Unsloth no auto-formatea el formato "messages":
-    # aplicamos la chat template del tokenizer y entrenamos sobre la columna "text".
-    if "messages" in dataset.column_names and "text" not in dataset.column_names:
-
-        def _to_text(example: dict) -> dict:
-            return {
-                "text": tokenizer.apply_chat_template(
-                    example["messages"], tokenize=False, add_generation_prompt=False
-                )
-            }
-
-        dataset = dataset.map(_to_text, remove_columns=dataset.column_names)
+    def _to_text(example: dict) -> dict:
+        return {
+            "text": tokenizer.apply_chat_template(
+                example["messages"], tokenize=False, add_generation_prompt=False
+            )
+        }
 
     # Red anti-NaN: descarta ejemplos que no caben en seq_len (si el truncado se
     # tragara la respuesta, train_on_responses_only dejaría 0 tokens -> loss NaN).
     def _fits(example: dict) -> bool:
         return len(tokenizer(example["text"], add_special_tokens=False).input_ids) <= cfg.seq_len
 
-    n_before = len(dataset)
-    dataset = dataset.filter(_fits)
-    print(f"[sft] descartados {n_before - len(dataset)} ejemplos > seq_len; quedan {len(dataset)}")
+    def _prepare(path: Path | str, label: str):
+        ds = load_dataset("json", data_files=str(path), split="train")
+        if "meta" in ds.column_names:
+            ds = ds.remove_columns(["meta"])
+        if "messages" in ds.column_names and "text" not in ds.column_names:
+            ds = ds.map(_to_text, remove_columns=ds.column_names)
+        n_before = len(ds)
+        ds = ds.filter(_fits)
+        dropped = n_before - len(ds)
+        print(f"[sft] {label}: {len(ds)} ejemplos ({dropped} descartados > seq_len)")
+        if n_before and dropped / n_before > 0.05:
+            raise SystemExit(
+                f"[sft] ABORTADO: el filtro de longitud descarta {dropped}/{n_before} "
+                f"ejemplos de {label} (>5%). El presupuesto de tokens del dataset "
+                "está roto; regenera los datos (lección v2b: el descarte silencioso "
+                "sesgó la composición)."
+            )
+        return ds
+
+    dataset = _prepare(cfg.dataset_path, "train")
+    _assert_clean_render([dataset[i]["text"] for i in range(min(5, len(dataset)))])
+
+    eval_dataset = None
+    if cfg.val_dataset_path is not None:
+        if not Path(cfg.val_dataset_path).exists():
+            raise SystemExit(f"[sft] val_dataset_path no existe: {cfg.val_dataset_path}")
+        eval_dataset = _prepare(cfg.val_dataset_path, "val")
 
     bf16 = cuda_available and torch.cuda.is_bf16_supported()
     raw_kwargs = {
@@ -118,20 +179,42 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
         "dataset_text_field": "text",
         "eos_token": getattr(tokenizer, "eos_token", None),
     }
+    if eval_dataset is not None:
+        raw_kwargs.update(
+            {
+                # eval_strategy es el nombre actual; evaluation_strategy el
+                # antiguo — filter_kwargs_for_dataclass escoge el que exista.
+                "eval_strategy": "steps",
+                "evaluation_strategy": "steps",
+                "eval_steps": EVAL_EVERY_STEPS,
+                "per_device_eval_batch_size": 1,
+                "save_strategy": "steps",
+                "save_steps": EVAL_EVERY_STEPS,
+                "save_total_limit": 2,
+                "load_best_model_at_end": True,
+                "metric_for_best_model": "eval_loss",
+                "greater_is_better": False,
+            }
+        )
     sft_config = SFTConfig(**filter_kwargs_for_dataclass(SFTConfig, raw_kwargs))
 
+    abort_on_nan = AbortOnNonFiniteLoss()
+    callbacks = [abort_on_nan]
+    if eval_dataset is not None:
+        callbacks.append(EarlyStoppingCallback(early_stopping_patience=EARLY_STOPPING_PATIENCE))
+
+    trainer_kwargs = {
+        "model": model,
+        "args": sft_config,
+        "train_dataset": dataset,
+        "eval_dataset": eval_dataset,
+        "callbacks": callbacks,
+    }
     try:
-        trainer = SFTTrainer(
-            model=model,
-            args=sft_config,
-            train_dataset=dataset,
-            processing_class=tokenizer,
-        )
+        trainer = SFTTrainer(processing_class=tokenizer, **trainer_kwargs)
     except TypeError:
         # Compatibilidad con TRL antiguos (tokenizer= en lugar de processing_class=).
-        trainer = SFTTrainer(
-            model=model, args=sft_config, train_dataset=dataset, tokenizer=tokenizer
-        )
+        trainer = SFTTrainer(tokenizer=tokenizer, **trainer_kwargs)
 
     if used_unsloth:
         try:
@@ -151,6 +234,43 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
     runtime_s = time.monotonic() - started
 
     loss_initial, loss_final = extract_loss_curve(trainer.state.log_history)
+    eval_losses = [
+        float(entry["eval_loss"])
+        for entry in trainer.state.log_history
+        if "eval_loss" in entry
+    ]
+    extra = {
+        "train_loss_mean": getattr(result, "training_loss", None),
+        "git_sha": git_sha(),
+        "chat_template": "qwen3_instruct_2507-oficial",
+        "val_examples": len(eval_dataset) if eval_dataset is not None else 0,
+    }
+    if eval_losses:
+        extra.update(
+            {
+                "eval_loss_final": eval_losses[-1],
+                "eval_loss_best": min(eval_losses),
+                "n_evals": len(eval_losses),
+            }
+        )
+
+    # Un run divergido no guarda adapter: se persiguen métricas y se sale != 0
+    # ANTES de save_model (en v2 este orden estaba invertido).
+    if abort_on_nan.diverged:
+        metrics = build_run_metrics(
+            cfg,
+            phase="sft",
+            steps=int(trainer.state.global_step),
+            loss_initial=loss_initial,
+            loss_final=loss_final,
+            runtime_s=runtime_s,
+            used_unsloth=used_unsloth,
+            extra={**extra, "diverged": True, "diverged_step": abort_on_nan.bad_step},
+        )
+        save_metrics(output_dir / "metrics.json", metrics)
+        print("[sft] ERROR: la loss divergió; NO se guarda ningún adapter")
+        raise SystemExit(1)
+
     adapter_dir = output_dir / "adapter"
     trainer.save_model(str(adapter_dir))
     tokenizer.save_pretrained(str(adapter_dir))
@@ -163,11 +283,11 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
         loss_final=loss_final,
         runtime_s=runtime_s,
         used_unsloth=used_unsloth,
-        extra={"train_loss_mean": getattr(result, "training_loss", None)},
+        extra=extra,
     )
     save_metrics(output_dir / "metrics.json", metrics)
 
-    # Guardia: un run divergido (NaN) no debe "completarse" en silencio (bug real v2).
+    # Guardia redundante: métricas con NaN nunca deben pasar desapercibidas.
     import json as _json
     import math as _math
 
@@ -183,9 +303,12 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
     if use_mlflow:
         log_to_mlflow(cfg, metrics, get_settings().mlflow_tracking_uri)
 
+    eval_note = (
+        f" eval_loss best={extra.get('eval_loss_best'):.4f}" if eval_losses else ""
+    )
     print(
-        f"[sft] fin: steps={metrics['steps']} loss {loss_initial} -> {loss_final} "
-        f"({runtime_s:.0f}s, unsloth={used_unsloth}). Adapter en {adapter_dir}"
+        f"[sft] fin: steps={metrics['steps']} loss {loss_initial} -> {loss_final}"
+        f"{eval_note} ({runtime_s:.0f}s, unsloth={used_unsloth}). Adapter en {adapter_dir}"
     )
     return metrics
 

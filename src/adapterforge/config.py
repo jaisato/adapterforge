@@ -85,6 +85,11 @@ class ExperimentConfig(BaseModel):
     max_steps: int | None = Field(default=None, ge=1)
 
     dataset_path: Path
+    val_dataset_path: Path | None = Field(
+        default=None,
+        description="Split de validación (eval_loss + early stopping); sin él "
+        "el entrenamiento vuela a ciegas y publica el estado más sobreajustado",
+    )
     output_dir: Path
     vram_budget_gb: float = Field(default=8.0, gt=0.0, le=80.0)
 

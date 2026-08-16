@@ -38,6 +38,18 @@ def merge(base_model: str, adapter_dir: str, output_dir: str) -> Path:
     merged.save_pretrained(str(output_path), safe_serialization=True)
 
     tokenizer = AutoTokenizer.from_pretrained(adapter_dir)
+    # Salvaguarda: los adapters v1/v2/v2b heredaron el template thinking del
+    # mirror de Unsloth y lo propagaron al GGUF (Ollama usa el template
+    # embebido). Si el adapter aún lo trae, se sobreescribe con el oficial.
+    chat_template = getattr(tokenizer, "chat_template", None) or ""
+    if "<think>" in chat_template:
+        from adapterforge.train.common import load_official_chat_template
+
+        tokenizer.chat_template = load_official_chat_template()
+        print(
+            "[merge] AVISO: el adapter traía el template thinking; "
+            "sobreescrito con el oficial de Instruct-2507"
+        )
     tokenizer.save_pretrained(str(output_path))
     print(f"[merge] modelo fusionado en {output_path}")
     return output_path
