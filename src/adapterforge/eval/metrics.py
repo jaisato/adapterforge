@@ -25,6 +25,31 @@ _PUNCT = re.compile(r"[^\w\s]", re.UNICODE)
 _SPACES = re.compile(r"\s+")
 # Separador de miles entre grupos de 3 dígitos: «7.500», «1.719.936», «600,000».
 _THOUSANDS = re.compile(r"(?<=\d)[.,](?=\d{3}(?!\d))")
+# Fechas: «2028-07-01» (ISO) y «1 de julio de 2028» canonicalizan ambas a
+# «1 7 2028» — la base respondía fechas ISO semánticamente correctas que la
+# métrica puntuaba 0.0 frente a referencias en formato largo.
+_MONTH_NUMBER = {
+    "enero": 1, "febrero": 2, "marzo": 3, "abril": 4, "mayo": 5, "junio": 6,
+    "julio": 7, "agosto": 8, "septiembre": 9, "octubre": 10,
+    "noviembre": 11, "diciembre": 12,
+}
+_ISO_DATE = re.compile(r"\b(\d{4})-(\d{1,2})-(\d{1,2})\b")
+_SPANISH_DATE = re.compile(
+    rf"\b(\d{{1,2}})\s+de\s+({'|'.join(_MONTH_NUMBER)})(?:\s+de\s+(\d{{4}}))?\b"
+)
+
+
+def _canonicalize_dates(text: str) -> str:
+    text = _ISO_DATE.sub(
+        lambda m: f"{int(m.group(3))} {int(m.group(2))} {int(m.group(1))}", text
+    )
+    return _SPANISH_DATE.sub(
+        lambda m: f"{int(m.group(1))} {_MONTH_NUMBER[m.group(2)]}"
+        + (f" {m.group(3)}" if m.group(3) else ""),
+        text,
+    )
+
+
 # Separador decimal u hora restante entre dígitos -> marcador que sobrevive a
 # _PUNCT («3,5», «3.5» y también «9.30»/«9:30» acaban como «3_5»/«9_30»).
 _DECIMAL = re.compile(r"(?<=\d)[.,:](?=\d)")
@@ -159,7 +184,8 @@ def normalize_text(text: str) -> str:
     lowered = text.lower().strip()
     decomposed = unicodedata.normalize("NFKD", lowered)
     without_accents = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
-    canonical_digits = _DECIMAL.sub("_", _THOUSANDS.sub("", without_accents))
+    with_dates = _canonicalize_dates(without_accents)
+    canonical_digits = _DECIMAL.sub("_", _THOUSANDS.sub("", with_dates))
     without_punct = _PUNCT.sub(" ", canonical_digits)
     collapsed = _SPACES.sub(" ", without_punct).strip()
     return _spelled_numbers_to_digits(collapsed)

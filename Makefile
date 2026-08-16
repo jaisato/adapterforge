@@ -8,8 +8,9 @@ SMOKE_CONFIG ?= configs/qlora_smoke.yaml
 API_BASE ?= http://localhost:11434/v1
 EVAL_MODEL ?= qwen3:4b
 BASE_MODEL ?= qwen3-base-2507-eval
-ADAPTER_MODEL ?= juristune-v2b-eval
+ADAPTER_MODEL ?= juristune-v4-eval
 REPEATS ?= 3
+BENCH ?= evals/domain_bench_v2.jsonl
 
 .PHONY: help data train train-smoke dpo eval eval-pair eval-report export test lint mlflow clean
 
@@ -66,11 +67,11 @@ dpo: ## Fase DPO sobre los pares de preferencia (perfil train)
 		python -m adapterforge.train.dpo --config $(DPO_CONFIG)
 
 eval: ## Benchmark de dominio contra un endpoint OpenAI-compatible
-	$(PY) -m adapterforge.eval.domain_bench --api-base $(API_BASE) \
+	$(PY) -m adapterforge.eval.domain_bench --bench $(BENCH) --api-base $(API_BASE) \
 		--model $(EVAL_MODEL) --repeats $(REPEATS) --output artifacts/eval/latest.json
 
 eval-pair: ## Before/after intercalado en una sesión (n=REPEATS por caso) + informe
-	$(PY) -m adapterforge.eval.domain_bench --api-base $(API_BASE) \
+	$(PY) -m adapterforge.eval.domain_bench --bench $(BENCH) --api-base $(API_BASE) \
 		--model $(BASE_MODEL) --model $(ADAPTER_MODEL) --repeats $(REPEATS) \
 		--output-dir artifacts/eval/pair
 	$(PY) -m adapterforge.eval.report \

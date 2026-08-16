@@ -218,6 +218,64 @@ def test_compose_window_uses_indices_not_article_numbers():
     assert "primer artículo original" not in window
 
 
+def test_multiple_deadlines_require_disambiguated_questions():
+    texto = (
+        "Artículo 1. Objeto. El presente real decreto regula las ayudas del "
+        "programa de impulso a la digitalización de las pequeñas empresas.\n"
+        "Artículo 2. Solicitudes. Las solicitudes se presentarán en el plazo "
+        "de tres meses para presentar las solicitudes de ayuda desde la "
+        "publicación de la convocatoria oficial.\n"
+        "Artículo 3. Justificación. Las beneficiarias dispondrán de un plazo "
+        "de seis meses para justificar el empleo de los fondos recibidos."
+    )
+    doc = _make_doc(texto)
+    _, articles = split_articles(doc.texto)
+    ctx = SynthContext(counter=TokenCounter(), token_budget=DEFAULT_WINDOW_TOKENS, seed=42)
+    plazo_examples = [
+        e for e in offline_extraccion(doc, articles, ctx) if "plazo" in e.id
+    ]
+    assert plazo_examples, "dos plazos con propósito deben producir ejemplos"
+    for example in plazo_examples:
+        # Con varios plazos en el documento la pregunta NUNCA es genérica.
+        assert "para" in example.instruction or "en relación con" in example.instruction
+        # Y la etiqueta corresponde al plazo preguntado.
+        if "solicitud" in example.instruction:
+            assert "tres meses" in example.response
+        if "justificar" in example.instruction:
+            assert "seis meses" in example.response
+
+
+def test_single_deadline_allows_generic_question():
+    texto = (
+        "Artículo 1. Objeto. El presente real decreto regula el registro de "
+        "actividad de las entidades colaboradoras del sector energético.\n"
+        "Artículo 2. Plazo. Las entidades deberán inscribirse en el plazo de "
+        "tres meses desde la entrada en vigor de la presente disposición."
+    )
+    doc = _make_doc(texto)
+    _, articles = split_articles(doc.texto)
+    ctx = SynthContext(counter=TokenCounter(), token_budget=DEFAULT_WINDOW_TOKENS, seed=42)
+    plazo_examples = [
+        e for e in offline_extraccion(doc, articles, ctx) if "plazo" in e.id
+    ]
+    assert plazo_examples
+    assert any("tres meses" in e.response for e in plazo_examples)
+
+
+def test_resumen_prosa_uses_bench_reference_style(corpus):
+    examples = [
+        e for e in build_sft_offline(corpus, tasks=("resumen",), seed=42)
+        if not e.response.startswith("###")  # solo las variantes en prosa
+    ]
+    assert examples
+    for example in examples:
+        # Nada de metadatos de ficha en la prosa: voz activa desde la norma.
+        assert "es una disposición de rango" not in example.response
+        # Sin cita cuando la instrucción no la pide.
+        if "cita" not in example.instruction.lower():
+            assert "Fuente:" not in example.response
+
+
 def test_parse_teacher_qa_contract():
     parsed = parse_teacher_qa(
         "PREGUNTA: ¿Qué plazo fija el artículo 3?\n"

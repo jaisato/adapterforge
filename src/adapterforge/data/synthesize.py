@@ -264,17 +264,20 @@ class DpoPair(BaseModel):
 
 
 class DeadlineHit(NamedTuple):
-    """Plazo validado: valor verbatim, tipo e ÍNDICE del artículo.
+    """Plazo validado: valor verbatim, tipo, ÍNDICE del artículo y frase.
 
     ``article`` es el índice en la lista de artículos, no el número del
     artículo: los BOE que modifican otras normas repiten números («Artículo
     1.» aparece dos veces en 155/872 docs del corpus) y un dict por número
-    ensombrecería artículos.
+    ensombrecería artículos. ``sentence`` (la frase que contiene el plazo)
+    permite derivar el PROPÓSITO del plazo para preguntas desambiguadas
+    cuando el documento contiene varios plazos.
     """
 
     value: str
     kind: str  # "duracion" | "fecha"
     article: int
+    sentence: str = ""
 
 
 class SentenceHit(NamedTuple):
@@ -296,20 +299,106 @@ def classify_deadline(value: str) -> str | None:
     return None
 
 
+# Prefijos válidos dentro de una captura desbordada: «tres meses para
+# presentar las solicitudes» -> valor «tres meses» + contexto de propósito.
+_DURATION_PREFIX = re.compile(
+    rf"^({_NUMERAL_WORDS}(?:\s+{_NUMERAL_WORDS})?\s+{_TIME_UNITS}{_QUALIFIERS})(?![\wáéíóúñ])",
+    re.IGNORECASE,
+)
+_DATE_PREFIX = re.compile(
+    rf"^((?:el\s+)?\d{{1,2}}\s+de\s+(?:{'|'.join(_MONTHS_ES)})(?:\s+de\s+\d{{4}})?)(?![\wáéíóúñ])",
+    re.IGNORECASE,
+)
+
+
+def extract_deadline_value(raw: str) -> tuple[str, str] | None:
+    """Recorta una captura al valor de plazo válido: (valor, tipo) o None.
+
+    La regex de plazos captura hasta la siguiente puntuación, así que en
+    «plazo de tres meses para presentar las solicitudes» la captura entera
+    no valida; su prefijo «tres meses» sí, y el resto es el contexto que
+    permite derivar el propósito de la pregunta.
+    """
+    cleaned = " ".join(raw.split())
+    match = _DURATION_PREFIX.match(cleaned)
+    if match:
+        return match.group(1), "duracion"
+    match = _DATE_PREFIX.match(cleaned)
+    if match:
+        return match.group(1), "fecha"
+    return None
+
+
 def find_deadline_hits(articles: list[Article], limit: int = 6) -> list[DeadlineHit]:
-    """Plazos validados con el índice de su artículo (duración o fecha)."""
+    """Plazos validados con el índice de su artículo y la frase de origen."""
     hits: list[DeadlineHit] = []
     seen: set[str] = set()
     for index, article in enumerate(articles):
-        for pattern in _DEADLINE_PATTERNS:
-            for match in pattern.finditer(article.body):
-                value = " ".join(match.group(1).split())
-                kind = classify_deadline(value)
-                if kind is None or value.lower() in seen:
-                    continue
-                seen.add(value.lower())
-                hits.append(DeadlineHit(value=value, kind=kind, article=index))
+        for sentence in split_sentences(article.body):
+            for pattern in _DEADLINE_PATTERNS:
+                for match in pattern.finditer(sentence):
+                    extracted = extract_deadline_value(match.group(1))
+                    if extracted is None:
+                        continue
+                    value, kind = extracted
+                    if value.lower() in seen:
+                        continue
+                    seen.add(value.lower())
+                    hits.append(
+                        DeadlineHit(value=value, kind=kind, article=index, sentence=sentence)
+                    )
     return hits[:limit]
+
+
+# Rúbricas de artículo demasiado genéricas para servir de propósito.
+_GENERIC_HEADINGS = {
+    "objeto", "ambito de aplicacion", "ámbito de aplicación",
+    "definiciones", "entrada en vigor", "disposiciones generales",
+}
+
+
+def _trim_purpose(text: str) -> str | None:
+    """Acota el propósito: corta en «desde/a partir/a contar» y a 8 palabras."""
+    text = re.split(r"\s+(?:desde|a partir|a contar|contados?)\b", text)[0].strip()
+    words = text.split()
+    if len(words) < 2:
+        return None
+    return " ".join(words[:8])
+
+
+def deadline_purpose(hit: DeadlineHit, articles: list[Article]) -> str | None:
+    """Frase de propósito de un plazo («para presentar las solicitudes»).
+
+    Necesaria cuando el documento contiene VARIOS plazos: una pregunta
+    genérica («¿qué plazo se establece?») sería ambigua y enseñaría al
+    modelo a responder un plazo cualquiera (fallo real de v3 en eb-001).
+    Se deriva del complemento «para ...» de la propia frase o, en su
+    defecto, de la rúbrica del artículo; None si no hay forma fiable.
+    """
+    escaped = re.escape(hit.value)
+    match = re.search(
+        rf"(?:plazo(?: máximo)? de|en el término de)\s+{escaped},?\s+para\s+([^,.;]{{4,90}})",
+        hit.sentence,
+        re.IGNORECASE,
+    )
+    if match:
+        trimmed = _trim_purpose(match.group(1))
+        if trimmed:
+            return f"para {trimmed}"
+    match = re.search(
+        rf"plazo\s+para\s+([^,.;]{{4,90}}?)\s+(?:será|es)\s+de\s+{escaped}",
+        hit.sentence,
+        re.IGNORECASE,
+    )
+    if match:
+        trimmed = _trim_purpose(match.group(1))
+        if trimmed:
+            return f"para {trimmed}"
+    if 0 <= hit.article < len(articles):
+        heading = articles[hit.article].heading.rstrip(".").strip()
+        if heading and heading.lower() not in _GENERIC_HEADINGS and len(heading.split()) <= 6:
+            return f"en relación con {heading.lower()}"
+    return None
 
 
 def find_deadlines(text: str, limit: int = 5) -> list[str]:
@@ -317,9 +406,9 @@ def find_deadlines(text: str, limit: int = 5) -> list[str]:
     deadlines: list[str] = []
     for pattern in _DEADLINE_PATTERNS:
         for match in pattern.finditer(text):
-            value = " ".join(match.group(1).split())
-            if classify_deadline(value) and value not in deadlines:
-                deadlines.append(value)
+            extracted = extract_deadline_value(match.group(1))
+            if extracted and extracted[0] not in deadlines:
+                deadlines.append(extracted[0])
     return deadlines[:limit]
 
 
@@ -524,19 +613,44 @@ _RESUMEN_INSTRUCTIONS_ESTRUCTURADO = (
 )
 
 _RESUMEN_INSTRUCTIONS_PROSA = (
-    ("Resume en un párrafo de 4 a 6 frases la siguiente disposición: qué "
-     "norma es, quién la publica, cuál es su objeto y qué obligaciones y "
-     "plazos principales establece. Cita la fuente al final.", True),
+    # Espejo del estilo de instrucción del benchmark (sin cita).
+    ("Resume en un párrafo la disposición, indicando objeto, obligaciones y "
+     "plazos principales.", False),
+    ("Resume en un párrafo la disposición, indicando objeto y plazos.", False),
+    ("Resume en un párrafo la disposición, indicando obligaciones, plazos y "
+     "sanciones si las hay.", False),
+    ("Resume esta disposición en un solo párrafo: qué regula, a quién "
+     "obliga y qué plazos marca.", False),
+    # Variantes con cita (minoritarias: el estilo del producto).
     ("Escribe un resumen breve, en prosa y sin listas, de esta disposición "
-     "indicando norma, órgano emisor, objeto y los plazos más relevantes. "
-     "Termina citando la fuente.", True),
+     "indicando objeto, obligaciones y los plazos más relevantes. Termina "
+     "citando la fuente.", True),
     ("¿De qué trata la siguiente disposición? Contesta en un único párrafo "
-     "mencionando la norma, su objeto y sus plazos clave, y cita la fuente.", True),
-    ("Resume esta disposición en un solo párrafo: qué regula, quién la "
-     "emite y qué plazos marca.", False),
-    ("En un párrafo y sin encabezados: ¿qué establece esta norma y cuáles "
-     "son sus plazos principales?", False),
+     "mencionando su objeto y sus plazos clave, y cita la fuente.", True),
 )
+
+# «El presente real decreto tiene por objeto ...» -> apertura en voz activa
+# al estilo de las referencias del bench («El Real Decreto X tiene por
+# objeto regular ...» en lugar de «X es una disposición de rango ...»).
+_OBJETO_BOILERPLATE = re.compile(
+    r"^(?:el|la|este|esta)\s+presente\s+[\wáéíóúñ \-]+?\s+tiene\s+por\s+objeto\s+",
+    re.IGNORECASE,
+)
+
+
+def _resumen_opening(doc: RawDocument, objeto: str) -> str:
+    """Primera frase del resumen en prosa, en voz activa y sin metadatos."""
+    short = _short_ref(doc)
+    short_cap = short[0].upper() + short[1:]
+    stripped = _OBJETO_BOILERPLATE.sub("", objeto).strip()
+    if stripped and stripped != objeto:
+        return f"{short_cap} tiene por objeto {stripped}"
+    if objeto:
+        return f"{short_cap} regula lo siguiente: {objeto}"
+    return (
+        f"{short_cap} es una disposición publicada por "
+        f"{_organ_with_article(doc.organo_emisor)}."
+    )
 
 _QA_INSTRUCTIONS = (
     "Según el texto de la disposición, ¿qué establece el artículo {numero} "
@@ -579,6 +693,18 @@ _PLAZO_STEMS = (
     "El plazo fijado es de {v}",
     "La norma establece un plazo de {v}",
 )
+
+
+def _disambiguated_plazo_variants(purpose: str) -> tuple[tuple[str, bool], ...]:
+    """Variantes de pregunta que especifican QUÉ plazo se pide."""
+    return (
+        (f"Según la disposición siguiente, ¿qué plazo se establece {purpose}? "
+         "Responde en una sola frase y cita la fuente entre corchetes.", True),
+        (f"Indica brevemente el plazo fijado {purpose}, citando la fuente "
+         "entre corchetes.", True),
+        (f"¿Qué plazo fija esta norma {purpose}? Responde en una sola frase, "
+         "sin añadir nada más.", False),
+    )
 
 _FECHA_STEMS = (
     "La fecha límite es el {v}",
@@ -660,19 +786,15 @@ def offline_resumen(
         instruction, cite = _RESUMEN_INSTRUCTIONS_PROSA[
             rng.randrange(len(_RESUMEN_INSTRUCTIONS_PROSA))
         ]
-        sentences = [
-            f"{doc.short_title()} es una disposición de rango {doc.rango.lower()} "
-            f"publicada por {_organ_with_article(doc.organo_emisor)} el "
-            f"{format_date_es(doc.fecha_publicacion)}.",
-        ]
-        if objeto:
-            sentences.append(f"Su objeto es el siguiente: {objeto}")
-        if obligations:
-            sentences.append(
-                f"Entre sus obligaciones destaca que {obligations[0].rstrip('.').lower()}."
-            )
+        # Estilo de las referencias del bench: párrafo denso en voz activa
+        # (apertura con la norma como sujeto, obligaciones verbatim como
+        # frases propias, plazos entrelazados), sin metadatos de rango/fecha.
+        opening = _resumen_opening(doc, objeto)
+        sentences = [opening if _ends_sentence(opening) else f"{opening}."]
+        for obligation in obligations[:2]:
+            sentences.append(obligation if _ends_sentence(obligation) else f"{obligation}.")
         if deadlines:
-            sentences.append(f"Los plazos más relevantes son: {'; '.join(deadlines)}.")
+            sentences.append(f"Los plazos principales son {'; '.join(deadlines)}.")
         if cite:
             sentences.append(f"Fuente: [{doc.id}].")
         response = " ".join(sentences)
@@ -924,15 +1046,26 @@ def _extraccion_example(
     json_desc: str,
     prose_variants: tuple[tuple[str, bool], ...],
     prose_stems: tuple[str, ...],
+    require_desc: bool = False,
 ) -> SftExample | None:
-    """Ejemplo de extracción (frase corta o JSON verbatim) con anclaje."""
+    """Ejemplo de extracción (frase corta o JSON verbatim) con anclaje.
+
+    ``require_desc``: con pregunta desambiguada, solo valen las plantillas
+    JSON que transportan la descripción (una pregunta genérica con etiqueta
+    desambiguada re-crearía la ambigüedad que se quiere eliminar).
+    """
     rng = _example_rng(ctx.seed, doc.id, "extraccion", suffix)
     if value not in window:
         return None  # anclaje garantizado: el dato debe estar en la ventana
     if rng.random() < 0.5:  # variante JSON estilo benchmark
-        instruction = _EXTRACCION_JSON_INSTR[
-            rng.randrange(len(_EXTRACCION_JSON_INSTR))
-        ].format(campo=json_field, desc=json_desc)
+        json_pool = (
+            tuple(t for t in _EXTRACCION_JSON_INSTR if "{desc}" in t)
+            if require_desc
+            else _EXTRACCION_JSON_INSTR
+        )
+        instruction = json_pool[rng.randrange(len(json_pool))].format(
+            campo=json_field, desc=json_desc
+        )
         response = json.dumps({json_field: value}, ensure_ascii=False)
     else:
         instruction, cite = prose_variants[rng.randrange(len(prose_variants))]
@@ -972,24 +1105,52 @@ def offline_extraccion(
     variantes de frase única (con/sin cita) y de JSON con la clave pedida.
     """
     examples: list[SftExample] = []
-    for i, hit in enumerate(find_deadline_hits(articles, limit=3)):
-        window = compose_window(doc, articles, [hit.article], ctx.counter, ctx.token_budget)
+    all_deadline_hits = find_deadline_hits(articles, limit=6)
+    for i, hit in enumerate(all_deadline_hits[:3]):
+        if hit.kind == "fecha" and not _future_date(hit.value, doc):
+            continue  # fecha de referencia pre-publicación: no es un plazo
+        # Con varios plazos en el documento, la ventana INCLUYE los artículos
+        # de los plazos hermanos (el artículo del plazo pedido va primero y
+        # sobrevive seguro al presupuesto): el modelo debe aprender a elegir
+        # el plazo preguntado con el distractor delante (fallo real de v3 en
+        # eb-001: respondió el plazo de justificación cuando se preguntaba
+        # por el de solicitud).
+        needed = [hit.article] + [
+            h.article for h in all_deadline_hits if h.article != hit.article
+        ]
+        window = compose_window(doc, articles, needed, ctx.counter, ctx.token_budget)
+        visible = [h for h in all_deadline_hits if h.value in window]
+        purpose = None
+        if len(visible) > 1:
+            purpose = deadline_purpose(hit, articles)
+            if purpose is None:
+                continue  # varios plazos visibles y sin propósito: no se emite
         if hit.kind == "duracion":
+            json_desc = f"el plazo {purpose}" if purpose else "el plazo"
+            prose_variants = (
+                _disambiguated_plazo_variants(purpose) if purpose
+                else _EXTRACCION_PLAZO_VARIANTS
+            )
             example = _extraccion_example(
                 doc, ctx,
                 suffix=f"plazo-{i}", window=window, value=hit.value,
-                json_field="plazo", json_desc="el plazo",
-                prose_variants=_EXTRACCION_PLAZO_VARIANTS, prose_stems=_PLAZO_STEMS,
+                json_field="plazo", json_desc=json_desc,
+                prose_variants=prose_variants, prose_stems=_PLAZO_STEMS,
+                require_desc=purpose is not None,
             )
-        elif _future_date(hit.value, doc):
+        else:
+            json_desc = f"la fecha límite {purpose}" if purpose else "la fecha límite"
+            prose_variants = (
+                _disambiguated_plazo_variants(purpose) if purpose
+                else _EXTRACCION_PLAZO_VARIANTS
+            )
             example = _extraccion_example(
                 doc, ctx,
                 suffix=f"fecha-{i}", window=window, value=hit.value,
-                json_field="fecha_limite", json_desc="la fecha límite",
-                prose_variants=_EXTRACCION_PLAZO_VARIANTS, prose_stems=_FECHA_STEMS,
+                json_field="fecha_limite", json_desc=json_desc,
+                prose_variants=prose_variants, prose_stems=_FECHA_STEMS,
+                require_desc=purpose is not None,
             )
-        else:
-            example = None  # fecha de referencia pre-publicación: no es un plazo
         if example is not None:
             examples.append(example)
 

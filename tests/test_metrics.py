@@ -135,6 +135,15 @@ def test_time_notation_dot_vs_colon():
     assert exact_match("a las 9.30 horas", "a las 9:30 horas")
 
 
+def test_iso_and_spanish_dates_are_equivalent():
+    # La base respondía «2028-07-01» a referencias «1 de julio de 2028».
+    assert exact_match("2028-07-01", "1 de julio de 2028")
+    assert contains_match("la fecha límite es 2027-09-30", "30 de septiembre de 2027")
+    assert not exact_match("2028-07-02", "1 de julio de 2028")
+    # Fecha sin año: también canónica.
+    assert exact_match("31 de diciembre", "31 de diciembre")
+
+
 def test_strip_response_artifacts():
     garbage = '</tool_call>\n\n<tool_call>\n\n{"multa_maxima": 7500}'
     assert strip_response_artifacts(garbage) == '{"multa_maxima": 7500}'

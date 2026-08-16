@@ -1,0 +1,24 @@
+# v4: dataset v4 (v3 + desambiguación de plazos + resumen estilo bench) +
+# template oficial forzado + validación con early stopping.
+# Cambios respecto a v2b: datos v3, chat template correcto (sin <think>),
+# val activa con load_best_model_at_end, dropout 0.05 y 2 epochs (el early
+# stopping decide el corte real).
+name: juristune-qwen3-4b-v4
+base_model: Qwen/Qwen3-4B-Instruct-2507
+dataset_path: data/processed/juristune-v4_train.jsonl
+val_dataset_path: data/processed/juristune-v4_val.jsonl
+output_dir: artifacts/qlora_qwen3-4b-v4
+
+seq_len: 2048
+lr: 1.0e-4
+epochs: 2
+batch_size: 1
+grad_accum: 16
+warmup_ratio: 0.03
+seed: 42
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules: [q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj]

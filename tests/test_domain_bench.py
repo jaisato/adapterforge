@@ -22,6 +22,24 @@ def test_shipped_bench_is_valid(repo_root):
     assert all(isinstance(case["expected"], dict) for case in extract_cases)
 
 
+def test_shipped_bench_v2_is_valid_and_anchored(repo_root):
+    from adapterforge.eval.metrics import normalize_text
+
+    cases = load_bench_cases(repo_root / "evals" / "domain_bench_v2.jsonl")
+    assert len(cases) >= 100, "el bench v2 debe tener 100+ casos para resolver deltas"
+    # Incluye íntegro el bench original (comparabilidad histórica por caso).
+    v1_ids = {c["id"] for c in load_bench_cases(repo_root / "evals" / "domain_bench.jsonl")}
+    assert v1_ids <= {c["id"] for c in cases}
+    for case in cases:
+        if case["task_type"] != "extract":
+            continue
+        # Anclaje: todo valor esperado aparece en el input (métrica canónica).
+        for field, value in case["expected"].items():
+            assert normalize_text(str(value)) in normalize_text(case["input"]), (
+                f"{case['id']}: campo {field} no anclado al input"
+            )
+
+
 def test_score_case_extract_qa_and_resumen():
     extract_case = {
         "id": "c1",
