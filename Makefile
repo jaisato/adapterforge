@@ -12,39 +12,47 @@ ADAPTER_MODEL ?= juristune-v4-eval
 REPEATS ?= 3
 BENCH ?= evals/domain_bench_v2.jsonl
 
-.PHONY: help data train train-smoke dpo eval eval-pair eval-report export test lint mlflow clean
+.PHONY: help data data-v4 data-v4-teacher train train-smoke train-v3 train-v4 dpo eval eval-pair eval-report export test lint mlflow clean
 
 help: ## Lista los objetivos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-data-v3: ## Ingesta v3: síntesis con ventana estructural + filtro + splits por doc
+# NOTA: los datasets juristune-v3_* y juristune-v4_* commiteados en
+# data/processed/ son los canónicos (v3 quedó congelado con el código de su
+# época + ejemplos del teacher). Regenerar con el código actual produce el
+# contenido v4: por eso los targets de ingesta escriben SIEMPRE el prefijo v4.
+data-v4: ## Ingesta v4: ventana estructural + desambiguación + filtro + splits por doc
 	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl \
-		--output data/interim/sft_raw_v3.jsonl --offline --balance default
-	$(PY) -m adapterforge.data.filter --input data/interim/sft_raw_v3.jsonl \
+		--output data/interim/sft_raw_v4.jsonl --offline --balance default
+	$(PY) -m adapterforge.data.filter --input data/interim/sft_raw_v4.jsonl \
 		--corpus data/interim/documents.jsonl \
-		--output data/interim/sft_filtered_v3.jsonl \
-		--report data/interim/filter_report_v3.json
-	$(PY) -m adapterforge.data.format --input data/interim/sft_filtered_v3.jsonl \
-		--output-dir data/processed --prefix juristune-v3 --split-by doc
+		--output data/interim/sft_filtered_v4.jsonl \
+		--report data/interim/filter_report_v4.json
+	$(PY) -m adapterforge.data.format --input data/interim/sft_filtered_v4.jsonl \
+		--output-dir data/processed --prefix juristune-v4 --split-by doc
 
-data-v3-teacher: data-v3 ## Ejemplos qa del teacher (ventana anclada) + filtro con juez LLM
+data-v4-teacher: data-v4 ## Ejemplos qa del teacher (ventana anclada) + filtro con juez LLM
 	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl \
-		--output data/interim/sft_teacher_v3.jsonl --tasks qa --max-docs 250 \
+		--output data/interim/sft_teacher_v4.jsonl --tasks qa --max-docs 250 \
 		--backend openai --api-base $(API_BASE) --model qwen2.5:7b-instruct \
 		--token-budget 900
-	$(PY) -m adapterforge.data.filter --input data/interim/sft_teacher_v3.jsonl \
+	$(PY) -m adapterforge.data.filter --input data/interim/sft_teacher_v4.jsonl \
 		--corpus data/interim/documents.jsonl \
-		--output data/interim/sft_teacher_v3_filtered.jsonl \
-		--report data/interim/filter_report_v3_teacher.json \
+		--output data/interim/sft_teacher_v4_filtered.jsonl \
+		--report data/interim/filter_report_v4_teacher.json \
 		--judge --judge-model qwen2.5:7b-instruct --backend openai --api-base $(API_BASE)
-	cat data/interim/sft_filtered_v3.jsonl data/interim/sft_teacher_v3_filtered.jsonl \
-		> data/interim/sft_v3_full.jsonl
-	$(PY) -m adapterforge.data.format --input data/interim/sft_v3_full.jsonl \
-		--output-dir data/processed --prefix juristune-v3 --split-by doc
+	cat data/interim/sft_filtered_v4.jsonl data/interim/sft_teacher_v4_filtered.jsonl \
+		> data/interim/sft_v4_full.jsonl
+	$(PY) -m adapterforge.data.format --input data/interim/sft_v4_full.jsonl \
+		--output-dir data/processed --prefix juristune-v4 --split-by doc
 
 train-v3: ## SFT v3 (template oficial + val + early stopping) en el contenedor CUDA
 	docker compose --profile train run --rm trainer \
 		python -m adapterforge.train.sft --config configs/qlora_qwen3-4b_v3.yaml
+
+train-v4: ## SFT v4 (dataset con desambiguación + resumen estilo bench)
+	docker compose --profile train run --rm trainer \
+		python -m adapterforge.train.sft --config configs/qlora_qwen3-4b_v4.yaml
 
 data: ## Pipeline de datos completo en modo offline (sin API)
 	$(PY) -m adapterforge.data.extract --input data/raw/sample_corpus.jsonl --output data/interim/documents.jsonl
