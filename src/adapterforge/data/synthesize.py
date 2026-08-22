@@ -141,8 +141,9 @@ _DATE_RE = re.compile(
     rf"^(?:el\s+)?\d{{1,2}}\s+de\s+(?:{'|'.join(_MONTHS_ES)})(?:\s+de\s+\d{{4}})?$",
     re.IGNORECASE,
 )
-# Cuantías monetarias («7.500 euros», «600.000 €») para multa_maxima.
-_AMOUNT_RE = re.compile(r"\d[\d.,]*\s*(?:euros|€)")
+# Cuantías monetarias («7.500 euros», «600.000 €» y la forma BOE de los
+# millones: «900.000 de euros», «2.000.000 de euros») para multa_maxima.
+_AMOUNT_RE = re.compile(r"\d[\d.,]*\s*(?:de\s+)?(?:euros|€)")
 
 # Conectores anafóricos: una frase que empieza así no funciona como
 # respuesta autónoma de extracción («Asimismo, deberán...» ¿quiénes?).
@@ -357,13 +358,35 @@ _GENERIC_HEADINGS = {
 }
 
 
+# Palabras funcionales que no pueden cerrar un propósito (corte a 8 palabras
+# colgante: «para desarrollar dicho plan y»).
+_DANGLING_WORDS = frozenset(
+    "y o u e ni no de del al la el los las que en a su se para con por sin".split()
+)
+# Un propósito que contiene OTRO plazo produce ecos autocontradictorios
+# («El plazo para su informe en el plazo de un mes es de diez días»).
+_PURPOSE_BLOCKLIST = re.compile(
+    r"\b(?:plazo|d[ií]as?|mes(?:es)?|años?|semanas?|horas?|dich[oa]s?)\b",
+    re.IGNORECASE,
+)
+
+
 def _trim_purpose(text: str) -> str | None:
-    """Acota el propósito: corta en «desde/a partir/a contar» y a 8 palabras."""
+    """Acota el propósito: corta en «desde/a partir/a contar» y a 8 palabras.
+
+    Rechaza propósitos que embeben otro plazo o anáforas («dicho plan») y
+    despoja las palabras funcionales colgantes tras el corte (hallazgos de
+    la revisión v5: 3/120 propósitos truncados o autocontradictorios).
+    """
     text = re.split(r"\s+(?:desde|a partir|a contar|contados?)\b", text)[0].strip()
-    words = text.split()
+    if _PURPOSE_BLOCKLIST.search(text):
+        return None
+    words = text.split()[:8]
+    while words and words[-1].lower() in _DANGLING_WORDS:
+        words.pop()
     if len(words) < 2:
         return None
-    return " ".join(words[:8])
+    return " ".join(words)
 
 
 def deadline_purpose(hit: DeadlineHit, articles: list[Article]) -> str | None:
@@ -396,7 +419,12 @@ def deadline_purpose(hit: DeadlineHit, articles: list[Article]) -> str | None:
             return f"para {trimmed}"
     if 0 <= hit.article < len(articles):
         heading = articles[hit.article].heading.rstrip(".").strip()
-        if heading and heading.lower() not in _GENERIC_HEADINGS and len(heading.split()) <= 6:
+        if (
+            heading
+            and heading.lower() not in _GENERIC_HEADINGS
+            and len(heading.split()) <= 6
+            and not _PURPOSE_BLOCKLIST.search(heading)
+        ):
             return f"en relación con {heading.lower()}"
     return None
 
@@ -453,8 +481,10 @@ def find_amount_hits(articles: list[Article], limit: int = 2) -> list[SentenceHi
 
 
 def _amount_value(amount: str) -> float:
-    """«30.000 euros» -> 30000.0; «601,04 euros» -> 601.04 (coma decimal)."""
+    """«30.000 euros» -> 30000.0; «601,04 euros» -> 601.04; «2.000.000 de euros» ok."""
     number = amount.replace("euros", "").replace("€", "").strip()
+    if number.endswith(" de") or number.endswith("\tde"):
+        number = number[:-3].strip()
     number = number.replace(".", "").replace(",", ".")
     try:
         return float(number)
@@ -468,6 +498,74 @@ def max_amount_in(text: str) -> str | None:
     if not amounts:
         return None
     return max(amounts, key=_amount_value).strip()
+
+
+# Tramos del régimen sancionador («infracciones leves/graves/muy graves»).
+# El orden importa: «muy graves» antes que «graves» para no ensombrecerlo.
+_TIER_RE = re.compile(r"\binfracci(?:ón|ones)\s+(muy\s+graves?|graves?|leves?)\b", re.IGNORECASE)
+_TIER_PLURAL = {"leve": "leves", "grave": "graves", "muy grave": "muy graves"}
+
+
+class TierHit(NamedTuple):
+    """Tramo sancionador: nombre, cuantía máxima del tramo y frase de origen."""
+
+    tier: str  # "leves" | "graves" | "muy graves"
+    amount: str
+    article: int
+    sentence: str
+
+
+# Marcadores de lista dentro de una «frase» sancionadora: «a) Las leves, con
+# multa de hasta X. b) Las graves...» — las letras minúsculas no abren frase
+# para el separador, así que el escalado entero llega como una sola frase.
+_TIER_LIST_MARKER = re.compile(r"(?:^|\s)[a-z]\)\s")
+
+
+def _mentioned_tiers(text: str) -> set[str]:
+    return {
+        _TIER_PLURAL.get(" ".join(m.lower().split()), " ".join(m.lower().split()))
+        for m in _TIER_RE.findall(text)
+    }
+
+
+def find_sanction_tiers(articles: list[Article]) -> list[TierHit]:
+    """Tramos sancionadores con cuantía atribuible sin ambigüedad.
+
+    v4 etiquetaba multa_maxima como el máximo de la ventana SIEMPRE, y el
+    modelo aprendió a responder el tope de las «muy graves» aunque se le
+    preguntara por las «graves» (fallo real en eb-128). Aquí cada tramo se
+    ancla a SU cuantía.
+
+    Escanea las frases de los artículos DIRECTAMENTE (no vía
+    ``find_amount_hits``: su tope de 45 palabras descartaba los escalados
+    reales de 49-800 palabras antes de poder trocearlos) y sub-divide SIEMPRE
+    por marcadores de lista («a) ... b) ...», el patrón de los escalados
+    BOE) antes de atribuir. Un segmento que mezcla tramos se descarta.
+    """
+    tiers: list[TierHit] = []
+    seen: set[str] = set()
+    for index, article in enumerate(articles):
+        for sentence in split_sentences(article.body):
+            if not any(marker in sentence.lower() for marker in SANCTION_MARKERS):
+                continue
+            if not _AMOUNT_RE.search(sentence):
+                continue
+            for segment in _TIER_LIST_MARKER.split(sentence):
+                mentioned = _mentioned_tiers(segment)
+                if len(mentioned) != 1:
+                    continue  # sin tramo, o tramos mezclados: inatribuible
+                tier = next(iter(mentioned))
+                amount = max_amount_in(segment)
+                if amount is None or tier in seen:
+                    continue
+                seen.add(tier)
+                tiers.append(
+                    TierHit(
+                        tier=tier, amount=amount, article=index,
+                        sentence=segment.strip(),
+                    )
+                )
+    return tiers
 
 
 def find_obligation_sentences(text: str, limit: int = 5) -> list[str]:
@@ -704,7 +802,62 @@ def _disambiguated_plazo_variants(purpose: str) -> tuple[tuple[str, bool], ...]:
          "entre corchetes.", True),
         (f"¿Qué plazo fija esta norma {purpose}? Responde en una sola frase, "
          "sin añadir nada más.", False),
+        (f"Extrae el plazo previsto {purpose}. Responde en una sola frase.", False),
+        (f"¿De cuánto tiempo se dispone {purpose} según esta norma? Contesta "
+         "con una única frase que incluya la cita de la fuente.", True),
     )
+
+
+def _disambiguated_plazo_stems(purpose: str, kind: str) -> tuple[str, ...]:
+    """Stems de respuesta que ECO el propósito preguntado.
+
+    v4 respondía «El plazo establecido es de X» sin repetir el propósito: la
+    loss nunca ligaba pregunta y valor, y el modelo podía aprender «responde
+    un plazo cualquiera». Repetir el propósito en la respuesta hace que la
+    elección correcta forme parte de la señal de entrenamiento.
+    """
+    if kind == "fecha":
+        return (
+            f"La fecha límite {purpose} es el {{v}}",
+            f"El plazo {purpose} vence el {{v}}",
+        )
+    return (
+        f"El plazo {purpose} es de {{v}}",
+        f"El plazo establecido {purpose} es de {{v}}",
+    )
+
+
+def _tier_multa_variants(tier: str) -> tuple[tuple[str, bool], ...]:
+    """Preguntas de multa que nombran el TRAMO cuyo tope se pide."""
+    return (
+        (f"¿Qué multa máxima se prevé para las infracciones {tier}? Responde "
+         "de forma breve citando la fuente entre corchetes.", True),
+        (f"Indica la multa máxima aplicable a las infracciones {tier}, "
+         "citando la fuente entre corchetes.", True),
+        (f"¿Con qué multa máxima se sancionan las infracciones {tier} según "
+         "esta disposición? Contesta en una frase.", False),
+    )
+
+
+def _tier_multa_stems(tier: str) -> tuple[str, ...]:
+    return (
+        f"La multa máxima para las infracciones {tier} es de {{v}}",
+        f"Las infracciones {tier} se sancionan con multa de hasta {{v}}",
+    )
+
+
+_MULTA_GLOBAL_VARIANTS = (
+    ("¿Cuál es la multa más alta que puede llegar a imponerse según esta "
+     "disposición, considerando todos los tipos de infracción? Responde de "
+     "forma breve citando la fuente entre corchetes.", True),
+    ("Indica el importe máximo absoluto de multa que contempla esta norma, "
+     "sea cual sea el tipo de infracción, citando la fuente.", True),
+)
+
+_MULTA_GLOBAL_STEMS = (
+    "La multa más alta que contempla la norma es de {v}",
+    "El importe máximo absoluto de multa asciende a {v}",
+)
 
 _FECHA_STEMS = (
     "La fecha límite es el {v}",
@@ -1125,17 +1278,29 @@ def offline_extraccion(
             purpose = deadline_purpose(hit, articles)
             if purpose is None:
                 continue  # varios plazos visibles y sin propósito: no se emite
+            # El propósito debe DISCRIMINAR: si otro plazo visible deriva el
+            # mismo propósito (p. ej. dos plazos del mismo artículo que caen
+            # al fallback de rúbrica), la pareja instrucción->etiqueta sería
+            # contradictoria entre ejemplos. No se emite.
+            sibling_purposes = {
+                deadline_purpose(h, articles)
+                for h in visible
+                if h.value != hit.value
+            }
+            if purpose in sibling_purposes:
+                continue
         if hit.kind == "duracion":
             json_desc = f"el plazo {purpose}" if purpose else "el plazo"
             prose_variants = (
                 _disambiguated_plazo_variants(purpose) if purpose
                 else _EXTRACCION_PLAZO_VARIANTS
             )
+            stems = _disambiguated_plazo_stems(purpose, "duracion") if purpose else _PLAZO_STEMS
             example = _extraccion_example(
                 doc, ctx,
                 suffix=f"plazo-{i}", window=window, value=hit.value,
                 json_field="plazo", json_desc=json_desc,
-                prose_variants=prose_variants, prose_stems=_PLAZO_STEMS,
+                prose_variants=prose_variants, prose_stems=stems,
                 require_desc=purpose is not None,
             )
         else:
@@ -1144,37 +1309,100 @@ def offline_extraccion(
                 _disambiguated_plazo_variants(purpose) if purpose
                 else _EXTRACCION_PLAZO_VARIANTS
             )
+            stems = _disambiguated_plazo_stems(purpose, "fecha") if purpose else _FECHA_STEMS
             example = _extraccion_example(
                 doc, ctx,
                 suffix=f"fecha-{i}", window=window, value=hit.value,
                 json_field="fecha_limite", json_desc=json_desc,
-                prose_variants=prose_variants, prose_stems=_FECHA_STEMS,
+                prose_variants=prose_variants, prose_stems=stems,
                 require_desc=purpose is not None,
             )
         if example is not None:
             examples.append(example)
 
-    # Multa máxima: el máximo REAL entre todas las frases sancionadoras
-    # visibles en la ventana (los regímenes leves/graves/muy graves reparten
-    # los tramos en varias frases; etiquetar el tope del primer tramo
-    # enseñaría al modelo a responder el mínimo).
-    amount_hits = find_amount_hits(articles, limit=6)
-    if amount_hits:
-        needed = sorted({h.article for h in amount_hits})
+    # Multa máxima. Con régimen de tramos (leves/graves/muy graves) las
+    # preguntas nombran el TRAMO y la etiqueta es el tope de ESE tramo, con
+    # los demás tramos visibles como distractores (v4 etiquetaba siempre el
+    # máximo de ventana y aprendió a responder el tope de las «muy graves»
+    # aunque se preguntara por las «graves»: fallo real en eb-128). Se añade
+    # además una pregunta global con fraseo explícitamente absoluto.
+    tiers = find_sanction_tiers(articles)
+    tier_examples_emitted = False
+    if len(tiers) >= 2:
+        needed = sorted({t.article for t in tiers})
         window = compose_window(doc, articles, needed, ctx.counter, ctx.token_budget)
-        visible = [h.sentence for h in amount_hits if h.sentence in window]
-        amount = max_amount_in(" ".join(visible)) if visible else None
-        if amount is not None:
-            example = _extraccion_example(
-                doc, ctx,
-                suffix="multa-0", window=window, value=amount,
-                json_field="multa_maxima", json_desc="la multa máxima",
-                prose_variants=_EXTRACCION_SANCION_VARIANTS,
-                prose_stems=("La multa máxima prevista es de {v}",
-                             "La sanción puede alcanzar los {v}"),
+        visible_tiers = [
+            t for t in tiers if t.sentence in window and t.amount in window
+        ]
+        if len(visible_tiers) >= 2:
+            for t in visible_tiers:
+                slug = t.tier.replace(" ", "-")
+                example = _extraccion_example(
+                    doc, ctx,
+                    suffix=f"multa-{slug}", window=window, value=t.amount,
+                    json_field="multa_maxima",
+                    json_desc=f"la multa máxima para las infracciones {t.tier}",
+                    prose_variants=_tier_multa_variants(t.tier),
+                    prose_stems=_tier_multa_stems(t.tier),
+                    require_desc=True,
+                )
+                if example is not None:
+                    examples.append(example)
+                    tier_examples_emitted = True
+            global_amount = max(
+                (t.amount for t in visible_tiers), key=_amount_value
             )
-            if example is not None:
-                examples.append(example)
+            # Guard: si la ventana muestra CUALQUIER importe mayor que el
+            # candidato (un tramo inatribuible, un rango cuyo tope no
+            # capturamos), el ejemplo «máximo absoluto» mentiría a la vista
+            # del propio texto. No se emite (2/15 globales del primer build
+            # contradecían su ventana: hallazgo de la revisión).
+            window_max = max_amount_in(window)
+            if window_max is None or _amount_value(window_max) > _amount_value(global_amount):
+                pass
+            else:
+                example = _extraccion_example(
+                    doc, ctx,
+                    suffix="multa-global", window=window, value=global_amount,
+                    json_field="multa_maxima",
+                    json_desc="la multa más alta que puede imponerse, "
+                              "considerando todos los tipos de infracción",
+                    prose_variants=_MULTA_GLOBAL_VARIANTS,
+                    prose_stems=_MULTA_GLOBAL_STEMS,
+                    require_desc=True,
+                )
+                if example is not None:
+                    examples.append(example)
+
+    # Sin tramos discriminables: máximo real de la ventana con pregunta
+    # genérica (único importe o régimen no tramificado).
+    if not tier_examples_emitted:
+        amount_hits = find_amount_hits(articles, limit=6)
+        if amount_hits:
+            needed = sorted({h.article for h in amount_hits})
+            window = compose_window(doc, articles, needed, ctx.counter, ctx.token_budget)
+            visible = [h.sentence for h in amount_hits if h.sentence in window]
+            amount = max_amount_in(" ".join(visible)) if visible else None
+            # Guard de consistencia: la etiqueta solo vale si es el importe
+            # más alto VISIBLE en la ventana. Los escalados largos que las
+            # frases sancionadoras cortas no capturan (>45 palabras) siguen
+            # en la ventana y desmentirían la etiqueta (4 casos del primer
+            # build enseñaban un sub-máximo: hallazgo de la revisión).
+            if amount is not None:
+                window_max = max_amount_in(window)
+                if window_max is not None and _amount_value(window_max) > _amount_value(amount):
+                    amount = None
+            if amount is not None:
+                example = _extraccion_example(
+                    doc, ctx,
+                    suffix="multa-0", window=window, value=amount,
+                    json_field="multa_maxima", json_desc="la multa máxima",
+                    prose_variants=_EXTRACCION_SANCION_VARIANTS,
+                    prose_stems=("La multa máxima prevista es de {v}",
+                                 "La sanción puede alcanzar los {v}"),
+                )
+                if example is not None:
+                    examples.append(example)
 
     for i, hit in enumerate(find_obligation_hits(articles, limit=2)):
         if _EMBEDDED_LIST_MARKER.search(hit.sentence):

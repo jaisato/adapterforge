@@ -170,21 +170,143 @@ def test_amount_parsing_handles_decimal_commas_and_tiers():
     assert max_amount_in(tiers) == "900.000 euros"
 
 
-def test_multa_label_is_the_window_maximum():
+_TIERED_SANCTIONS_TEXT = (
+    "Artículo 1. Objeto. El presente real decreto regula el régimen "
+    "sancionador aplicable a las entidades del sector.\n"
+    "Artículo 2. Sanciones. Las infracciones leves se castigan con multa de "
+    "hasta 18.000 euros según su gravedad concreta. Las infracciones muy "
+    "graves se castigan con multa de hasta 900.000 euros en todo caso."
+)
+
+
+def test_tiered_sanctions_get_per_tier_labels():
+    """v5: cada tramo pregunta y responde SU tope, con el distractor visible.
+
+    v4 etiquetaba siempre el máximo de la ventana y el modelo aprendió a
+    responder «muy graves» aunque se preguntara por las «graves» (eb-128).
+    """
+    doc = _make_doc(_TIERED_SANCTIONS_TEXT)
+    _, articles = split_articles(doc.texto)
+    ctx = SynthContext(counter=TokenCounter(), token_budget=DEFAULT_WINDOW_TOKENS, seed=42)
+    multa = [e for e in offline_extraccion(doc, articles, ctx) if "multa" in e.id]
+    by_suffix = {e.id.rsplit("extraccion-", 1)[1]: e for e in multa}
+    assert "multa-leves" in by_suffix and "multa-muy-graves" in by_suffix
+    leves = by_suffix["multa-leves"]
+    assert "leves" in leves.instruction
+    assert "18.000 euros" in leves.response
+    assert "900.000" not in leves.response  # NUNCA el máximo global para un tramo
+    muy_graves = by_suffix["multa-muy-graves"]
+    assert "muy graves" in muy_graves.instruction
+    assert "900.000 euros" in muy_graves.response
+    # La pregunta global explícita responde el máximo absoluto.
+    assert "multa-global" in by_suffix
+    assert "900.000 euros" in by_suffix["multa-global"].response
+    # Y ambos tramos son visibles en todas las ventanas (distractor presente).
+    for example in multa:
+        assert "18.000 euros" in example.input and "900.000 euros" in example.input
+
+
+def test_find_sanction_tiers_splits_list_scales():
+    """El patrón real de los escalados BOE: lista «a) ... b) ...» en una frase."""
+    from adapterforge.data.synthesize import find_sanction_tiers
+
     texto = (
         "Artículo 1. Objeto. El presente real decreto regula el régimen "
-        "sancionador aplicable a las entidades del sector.\n"
-        "Artículo 2. Sanciones. Las infracciones leves se castigan con multa de "
-        "hasta 18.000 euros según su gravedad concreta. Las infracciones muy "
-        "graves se castigan con multa de hasta 900.000 euros en todo caso."
+        "sancionador de las entidades colaboradoras del sector regulado.\n"
+        "Artículo 2. Sanciones. Las infracciones se sancionarán del siguiente "
+        "modo: a) Las infracciones leves, con multa de hasta 10.000 euros. "
+        "b) Las infracciones graves, con multa de hasta 100.000 euros. "
+        "c) Las infracciones muy graves, con multa de hasta 1.000.000 euros."
+    )
+    doc = _make_doc(texto)
+    _, articles = split_articles(doc.texto)
+    tiers = {t.tier: t.amount for t in find_sanction_tiers(articles)}
+    assert tiers == {
+        "leves": "10.000 euros",
+        "graves": "100.000 euros",
+        "muy graves": "1.000.000 euros",
+    }
+
+
+def test_amount_regex_handles_boe_millions_form():
+    # Forma BOE de los millones: «N de euros». La regex anterior se quedaba
+    # con el límite INFERIOR del rango (hallazgo de la revisión v5).
+    assert _amount_value("2.000.000 de euros") == 2000000.0
+    assert max_amount_in(
+        "se sancionarán con multa de 120.001 euros a 900.000 de euros"
+    ) == "900.000 de euros"
+
+
+def test_find_sanction_tiers_handles_long_list_scales():
+    """Escalados >45 palabras: el tope de _sentence_hits ya no los descarta."""
+    from adapterforge.data.synthesize import find_sanction_tiers
+
+    texto = (
+        "Artículo 1. Objeto. El presente real decreto regula el régimen "
+        "sancionador aplicable a todas las entidades del sector regulado.\n"
+        "Artículo 2. Sanciones. Las infracciones tipificadas en la presente "
+        "disposición se sancionarán conforme al siguiente escalado de multas, "
+        "atendiendo en todo caso a la gravedad de la conducta, a la "
+        "intencionalidad apreciada y al beneficio ilícito obtenido por la "
+        "entidad infractora en el ejercicio de su actividad: a) Las "
+        "infracciones leves, con multa de hasta 10.000 euros. b) Las "
+        "infracciones graves, con multa de hasta 100.000 euros. c) Las "
+        "infracciones muy graves, con multa de hasta 2.000.000 de euros."
+    )
+    doc = _make_doc(texto)
+    _, articles = split_articles(doc.texto)
+    tiers = {t.tier: t.amount for t in find_sanction_tiers(articles)}
+    assert tiers.get("leves") == "10.000 euros"
+    assert tiers.get("graves") == "100.000 euros"
+    assert tiers.get("muy graves") == "2.000.000 de euros"
+
+
+def test_generic_multa_skipped_when_window_shows_larger_amount():
+    """La etiqueta genérica solo vale si es el máximo VISIBLE en la ventana."""
+    texto = (
+        "Artículo 1. Objeto. El presente real decreto regula el régimen "
+        "sancionador de referencia de las entidades del sector regulado.\n"
+        "Artículo 2. Sanciones. El incumplimiento leve se castiga con multa "
+        "de hasta 4.000 euros según su alcance. Las restantes infracciones "
+        "tipificadas en esta disposición se sancionarán conforme al cuadro "
+        "general aplicable al conjunto del sector y de sus entidades "
+        "colaboradoras, con multas que en los supuestos de reincidencia "
+        "acreditada podrán alcanzar, previa instrucción del oportuno "
+        "procedimiento y ponderando la capacidad económica del infractor, "
+        "la cifra de 6.000 euros por cada incumplimiento constatado."
     )
     doc = _make_doc(texto)
     _, articles = split_articles(doc.texto)
     ctx = SynthContext(counter=TokenCounter(), token_budget=DEFAULT_WINDOW_TOKENS, seed=42)
     multa = [e for e in offline_extraccion(doc, articles, ctx) if "multa" in e.id]
-    assert multa, "el régimen sancionador debe producir un ejemplo de multa"
-    assert "900.000 euros" in multa[0].response
-    assert "18.000 euros" not in multa[0].response.replace("900.000", "")
+    # La frase larga (>45 palabras) con 6.000 euros no entra en las frases
+    # sancionadoras cortas, pero SÍ en la ventana: etiquetar 4.000 mentiría.
+    assert multa == []
+
+
+def test_trim_purpose_rejects_embedded_plazos_and_dangling_words():
+    from adapterforge.data.synthesize import _trim_purpose
+
+    assert _trim_purpose("su informe en el plazo de un mes") is None
+    assert _trim_purpose("desarrollar dicho plan y") is None  # anafórico
+    trimmed = _trim_purpose("presentar las solicitudes de la ayuda y")
+    assert trimmed == "presentar las solicitudes de la ayuda"
+
+
+def test_find_sanction_tiers_skips_unattributable_sentences():
+    from adapterforge.data.synthesize import find_sanction_tiers
+
+    # Dos tramos en la MISMA frase: la cuantía no es atribuible por regex.
+    texto = (
+        "Artículo 1. Objeto. El presente real decreto regula el régimen "
+        "sancionador de referencia para el sector de actividades reguladas.\n"
+        "Artículo 2. Sanciones. Las infracciones leves y las infracciones "
+        "graves se castigan con multa de hasta 18.000 euros o de hasta "
+        "90.000 euros respectivamente según su gravedad."
+    )
+    doc = _make_doc(texto)
+    _, articles = split_articles(doc.texto)
+    assert find_sanction_tiers(articles) == []
 
 
 def test_first_sentence_skips_bare_apartado_numerals():
@@ -243,6 +365,33 @@ def test_multiple_deadlines_require_disambiguated_questions():
             assert "tres meses" in example.response
         if "justificar" in example.instruction:
             assert "seis meses" in example.response
+        # v5: las respuestas en prosa ECO el propósito (liga pregunta-valor).
+        if not example.response.lstrip().startswith("{"):
+            assert "para" in example.response
+
+
+def test_same_purpose_siblings_are_suppressed():
+    """Dos plazos cuyo propósito derivado coincide -> pares contradictorios: fuera.
+
+    Ocurre cuando ambos caen al fallback de rúbrica del mismo artículo (sin
+    complemento «para ...» en sus frases).
+    """
+    texto = (
+        "Artículo 1. Objeto. El presente real decreto regula el procedimiento "
+        "aplicable a las entidades del sector para su registro oficial.\n"
+        "Artículo 2. Tramitación registral. La inscripción se practicará en el "
+        "plazo de tres meses desde la entrada en vigor. La renovación se "
+        "practicará en el plazo de seis meses desde la primera inscripción."
+    )
+    doc = _make_doc(texto)
+    _, articles = split_articles(doc.texto)
+    ctx = SynthContext(counter=TokenCounter(), token_budget=DEFAULT_WINDOW_TOKENS, seed=42)
+    plazo_examples = [
+        e for e in offline_extraccion(doc, articles, ctx) if "plazo" in e.id
+    ]
+    # Ambos plazos derivarían «en relación con tramitación registral»: la
+    # instrucción no discriminaría cuál se pide, así que no se emite ninguno.
+    assert plazo_examples == []
 
 
 def test_single_deadline_allows_generic_question():
