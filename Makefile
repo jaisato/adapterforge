@@ -12,39 +12,39 @@ ADAPTER_MODEL ?= juristune-v6-eval
 REPEATS ?= 3
 BENCH ?= evals/domain_bench_v2.jsonl
 
-.PHONY: help data data-v5 data-v5-teacher train train-smoke train-v3 train-v4 train-v5 dpo eval eval-pair eval-report export test lint mlflow clean
+.PHONY: help data data-v6 data-v6-teacher train train-smoke train-v3 train-v4 train-v5 train-v6 dpo eval eval-pair eval-report export test lint mlflow clean
 
 help: ## Lista los objetivos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-# NOTA: los datasets juristune-v3_*/v4_*/v5_* commiteados en data/processed/
+# NOTA: los datasets juristune-v3_*/v4_*/v5_*/v6_* commiteados en data/processed/
 # son los canónicos (cada versión quedó congelada con el código de su época).
-# Regenerar con el código actual produce el contenido v5: por eso los targets
-# de ingesta escriben SIEMPRE el prefijo de la versión vigente (v5).
-data-v5: ## Ingesta v5: desambiguación por tramo y propósito + filtro + splits por doc
+# Regenerar con el código actual produce el contenido v6: por eso los targets
+# de ingesta escriben SIEMPRE el prefijo de la versión vigente (v6).
+data-v6: ## Ingesta v6: resumen denso + ecos verbatim + filtro + splits por doc
 	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl \
-		--output data/interim/sft_raw_v5.jsonl --offline --balance default
-	$(PY) -m adapterforge.data.filter --input data/interim/sft_raw_v5.jsonl \
+		--output data/interim/sft_raw_v6.jsonl --offline --balance default
+	$(PY) -m adapterforge.data.filter --input data/interim/sft_raw_v6.jsonl \
 		--corpus data/interim/documents.jsonl \
-		--output data/interim/sft_filtered_v5.jsonl \
-		--report data/interim/filter_report_v5.json
-	$(PY) -m adapterforge.data.format --input data/interim/sft_filtered_v5.jsonl \
-		--output-dir data/processed --prefix juristune-v5 --split-by doc
+		--output data/interim/sft_filtered_v6.jsonl \
+		--report data/interim/filter_report_v6.json
+	$(PY) -m adapterforge.data.format --input data/interim/sft_filtered_v6.jsonl \
+		--output-dir data/processed --prefix juristune-v6 --split-by doc
 
-data-v5-teacher: data-v5 ## Ejemplos qa del teacher (ventana anclada) + filtro con juez LLM
+data-v6-teacher: data-v6 ## Ejemplos qa del teacher (ventana anclada) + filtro con juez LLM
 	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl \
-		--output data/interim/sft_teacher_v5.jsonl --tasks qa --max-docs 250 \
+		--output data/interim/sft_teacher_v6.jsonl --tasks qa --max-docs 250 \
 		--backend openai --api-base $(API_BASE) --model qwen2.5:7b-instruct \
 		--token-budget 900
-	$(PY) -m adapterforge.data.filter --input data/interim/sft_teacher_v5.jsonl \
+	$(PY) -m adapterforge.data.filter --input data/interim/sft_teacher_v6.jsonl \
 		--corpus data/interim/documents.jsonl \
-		--output data/interim/sft_teacher_v5_filtered.jsonl \
-		--report data/interim/filter_report_v5_teacher.json \
+		--output data/interim/sft_teacher_v6_filtered.jsonl \
+		--report data/interim/filter_report_v6_teacher.json \
 		--judge --judge-model qwen2.5:7b-instruct --backend openai --api-base $(API_BASE)
-	cat data/interim/sft_filtered_v5.jsonl data/interim/sft_teacher_v5_filtered.jsonl \
-		> data/interim/sft_v5_full.jsonl
-	$(PY) -m adapterforge.data.format --input data/interim/sft_v5_full.jsonl \
-		--output-dir data/processed --prefix juristune-v5 --split-by doc
+	cat data/interim/sft_filtered_v6.jsonl data/interim/sft_teacher_v6_filtered.jsonl \
+		> data/interim/sft_v6_full.jsonl
+	$(PY) -m adapterforge.data.format --input data/interim/sft_v6_full.jsonl \
+		--output-dir data/processed --prefix juristune-v6 --split-by doc
 
 train-v3: ## SFT v3 (template oficial + val + early stopping) en el contenedor CUDA
 	docker compose --profile train run --rm trainer \
@@ -110,3 +110,7 @@ clean: ## Limpia cachés de Python y artefactos temporales de test
 train-v5: ## SFT v5 (selección sensible a cualificador)
 	docker compose --profile train run --rm trainer \
 		python -m adapterforge.train.sft --config configs/qlora_qwen3-4b_v5.yaml
+
+train-v6: ## SFT v6 (resumen denso + ecos verbatim; soporta --resume vía RESUME=1)
+	docker compose --profile train run --rm trainer \
+		python -m adapterforge.train.sft --config configs/qlora_qwen3-4b_v6.yaml $(if $(RESUME),--resume,)
