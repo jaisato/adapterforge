@@ -8,7 +8,7 @@ SMOKE_CONFIG ?= configs/qlora_smoke.yaml
 API_BASE ?= http://localhost:11434/v1
 EVAL_MODEL ?= qwen3:4b
 BASE_MODEL ?= qwen3-base-2507-eval
-ADAPTER_MODEL ?= juristune-v5-eval
+ADAPTER_MODEL ?= juristune-v6-eval
 REPEATS ?= 3
 BENCH ?= evals/domain_bench_v2.jsonl
 

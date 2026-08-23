@@ -83,7 +83,7 @@ def _assert_clean_render(texts: list[str]) -> None:
             )
 
 
-def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
+def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False, resume: bool = False) -> dict:
     """Ejecuta el SFT completo. Todos los imports pesados viven aquí."""
     import torch
     from datasets import load_dataset
@@ -230,7 +230,19 @@ def run_sft(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
             print(f"[sft] aviso: train_on_responses_only no disponible: {exc}")
 
     started = time.monotonic()
-    result = trainer.train()
+    # Reanudación: retoma del último checkpoint de <output_dir>/trainer con
+    # optimizador, scheduler y contador de pasos (un segfault del stack GPU
+    # de WSL a mitad de run ya no cuesta el entrenamiento entero).
+    last_checkpoint = None
+    if resume:
+        from transformers.trainer_utils import get_last_checkpoint
+
+        last_checkpoint = get_last_checkpoint(str(output_dir / "trainer"))
+        if last_checkpoint is None:
+            print("[sft] --resume sin checkpoints previos: se entrena desde cero")
+        else:
+            print(f"[sft] reanudando desde {last_checkpoint}")
+    result = trainer.train(resume_from_checkpoint=last_checkpoint)
     runtime_s = time.monotonic() - started
 
     loss_initial, loss_final = extract_loss_curve(trainer.state.log_history)
@@ -318,6 +330,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", required=True, help="YAML de experimento")
     parser.add_argument("--smoke", action="store_true", help="Run corto (max_steps=30)")
     parser.add_argument("--mlflow", action="store_true", help="Tracking en MLflow")
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="Reanudar desde el último checkpoint de <output_dir>/trainer",
+    )
     parser.add_argument("--dataset", default=None, help="Override de dataset_path")
     parser.add_argument("--output-dir", default=None, help="Override de output_dir")
     args = parser.parse_args(argv)
@@ -333,7 +349,7 @@ def main(argv: list[str] | None = None) -> int:
     if updates:
         cfg = cfg.model_copy(update=updates)
 
-    run_sft(cfg, use_mlflow=args.mlflow)
+    run_sft(cfg, use_mlflow=args.mlflow, resume=args.resume)
     return 0
 
 
