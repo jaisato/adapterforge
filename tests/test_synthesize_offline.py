@@ -394,6 +394,48 @@ def test_same_purpose_siblings_are_suppressed():
     assert plazo_examples == []
 
 
+def test_resumen_prose_includes_sanctions_for_density():
+    """v6: el target de prosa incluye la frase sancionadora (recall ROUGE)."""
+    texto = (
+        "Artículo 1. Objeto. El presente real decreto tiene por objeto regular "
+        "el registro de proveedores del sector y sus obligaciones asociadas.\n"
+        "Artículo 2. Obligaciones. Los proveedores deberán inscribirse en el "
+        "registro oficial antes del inicio de su actividad comercial.\n"
+        "Artículo 3. Sanciones. El incumplimiento de la obligación de registro "
+        "se sancionará con multa de hasta 50.000 euros según su gravedad."
+    )
+    doc = _make_doc(texto)
+    _, articles = split_articles(doc.texto)
+    from adapterforge.data.synthesize import offline_resumen
+
+    found_sanction = False
+    for seed in range(10):
+        ctx = SynthContext(counter=TokenCounter(), token_budget=DEFAULT_WINDOW_TOKENS, seed=seed)
+        for e in offline_resumen(doc, articles, ctx):
+            if not e.response.startswith("###") and "50.000 euros" in e.response:
+                found_sanction = True
+    assert found_sanction, "algún resumen en prosa debe entretejer la sanción"
+
+
+def test_plazo_examples_include_verbatim_clause_variant():
+    """v6: algún ejemplo responde con la fórmula normativa exacta del texto."""
+    texto = (
+        "Artículo 1. Objeto. El presente real decreto regula el registro de "
+        "actividad de las entidades colaboradoras del sector energético.\n"
+        "Artículo 2. Plazo. Las entidades deberán inscribirse en el plazo de "
+        "tres meses desde la entrada en vigor de la presente disposición."
+    )
+    doc = _make_doc(texto)
+    _, articles = split_articles(doc.texto)
+    found_verbatim = False
+    for seed in range(12):
+        ctx = SynthContext(counter=TokenCounter(), token_budget=DEFAULT_WINDOW_TOKENS, seed=seed)
+        for e in offline_extraccion(doc, articles, ctx):
+            if "plazo" in e.id and "deberán inscribirse en el plazo de tres meses" in e.response:
+                found_verbatim = True
+    assert found_verbatim, "el stem verbatim debe aparecer con alguna semilla"
+
+
 def test_single_deadline_allows_generic_question():
     texto = (
         "Artículo 1. Objeto. El presente real decreto regula el registro de "

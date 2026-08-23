@@ -196,12 +196,34 @@ def exact_match(prediction: str, reference: str) -> bool:
     return normalize_text(prediction) == normalize_text(reference)
 
 
+# Artículos y determinantes sin contenido jurídico: «en un plazo de veinte
+# días» y «en el plazo de veinte días» son la misma afirmación. Se eliminan
+# SOLO para el containment (simétrico para todos los modelos evaluados) y
+# sobre el texto CRUDO: tras normalizar, «un» ya se ha convertido en «1» y
+# sería indistinguible de un numeral genuino («1 de julio»).
+_ARTICLE_RE = re.compile(r"\b(?:el|la|los|las|un|una|unos|unas|lo)\b", re.IGNORECASE)
+
+
+def _normalize_without_articles(text: str) -> str:
+    return normalize_text(_ARTICLE_RE.sub(" ", text))
+
+
 def contains_match(prediction: str, reference: str) -> bool:
-    """La referencia normalizada aparece dentro de la predicción normalizada."""
+    """La referencia normalizada aparece dentro de la predicción normalizada.
+
+    Si el containment literal falla, se reintenta sin artículos gramaticales:
+    un «un/el» intercambiado no cambia el contenido normativo y puntuaba 0.0
+    una respuesta correcta (caso real: eb-142).
+    """
     normalized_reference = normalize_text(reference)
     if not normalized_reference:
         return False
-    return normalized_reference in normalize_text(prediction)
+    if normalized_reference in normalize_text(prediction):
+        return True
+    stripped_reference = _normalize_without_articles(reference)
+    if not stripped_reference:
+        return False
+    return stripped_reference in _normalize_without_articles(prediction)
 
 
 def _lcs_length(a: list[str], b: list[str]) -> int:

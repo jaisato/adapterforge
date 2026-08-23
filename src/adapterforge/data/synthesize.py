@@ -921,15 +921,20 @@ def offline_resumen(
 ) -> list[SftExample]:
     """Resumen: prosa de un párrafo (mayoría) o ficha estructurada."""
     rng = _example_rng(ctx.seed, doc.id, "resumen")
-    obligation_hits = find_obligation_hits(articles, limit=2)
+    obligation_hits = find_obligation_hits(articles, limit=3)
     deadline_hits = find_deadline_hits(articles, limit=4)
+    sanction_hits = find_sanction_hits(articles, limit=1)
     needed = sorted(
-        {0} | {h.article for h in obligation_hits} | {h.article for h in deadline_hits}
+        {0}
+        | {h.article for h in obligation_hits}
+        | {h.article for h in deadline_hits}
+        | {h.article for h in sanction_hits}
     )
     window = compose_window(doc, articles, needed, ctx.counter, ctx.token_budget)
-    # Anclaje: solo se citan obligaciones/plazos presentes en la ventana.
+    # Anclaje: solo se citan obligaciones/plazos/sanciones de la ventana.
     obligations = [h.sentence for h in obligation_hits if h.sentence in window]
     deadlines = [h.value for h in deadline_hits if h.value in window]
+    sanctions = [h.sentence for h in sanction_hits if h.sentence in window]
     objeto = _first_sentence(articles[0].body) if articles else _first_sentence(doc.texto)
     if not _valid_objeto(objeto) or objeto not in window:
         objeto = ""
@@ -939,13 +944,19 @@ def offline_resumen(
         instruction, cite = _RESUMEN_INSTRUCTIONS_PROSA[
             rng.randrange(len(_RESUMEN_INSTRUCTIONS_PROSA))
         ]
-        # Estilo de las referencias del bench: párrafo denso en voz activa
+        # Estilo de las referencias del bench: párrafo DENSO en voz activa
         # (apertura con la norma como sujeto, obligaciones verbatim como
-        # frases propias, plazos entrelazados), sin metadatos de rango/fecha.
+        # frases propias, sanción y plazos entrelazados), sin metadatos.
+        # v6: las predicciones de v4/v5 quedaban un ~20% más cortas que las
+        # referencias y ROUGE-L penalizaba el recall — el target incluye
+        # ahora hasta 3 obligaciones y la frase sancionadora si existe.
         opening = _resumen_opening(doc, objeto)
         sentences = [opening if _ends_sentence(opening) else f"{opening}."]
-        for obligation in obligations[:2]:
+        for obligation in obligations[:3]:
             sentences.append(obligation if _ends_sentence(obligation) else f"{obligation}.")
+        if sanctions and sanctions[0] not in sentences:
+            sanction = sanctions[0]
+            sentences.append(sanction if _ends_sentence(sanction) else f"{sanction}.")
         if deadlines:
             sentences.append(f"Los plazos principales son {'; '.join(deadlines)}.")
         if cite:
@@ -1289,6 +1300,16 @@ def offline_extraccion(
             }
             if purpose in sibling_purposes:
                 continue
+        # v6: un stem VERBATIM — la frase del documento que contiene el plazo
+        # («Las solicitudes se presentarán en el plazo de veinte días
+        # hábiles») — enseña a responder con la fórmula normativa exacta.
+        # v5 parafraseaba («en un plazo de...») y el containment castigaba
+        # hasta el cambio de un artículo gramatical (fallo real en eb-142).
+        verbatim_stem = None
+        if _ends_sentence(hit.sentence) and len(hit.sentence.split()) <= 45:
+            verbatim_stem = (
+                hit.sentence.rstrip(".").replace("{", "{{").replace("}", "}}")
+            )
         if hit.kind == "duracion":
             json_desc = f"el plazo {purpose}" if purpose else "el plazo"
             prose_variants = (
@@ -1296,6 +1317,8 @@ def offline_extraccion(
                 else _EXTRACCION_PLAZO_VARIANTS
             )
             stems = _disambiguated_plazo_stems(purpose, "duracion") if purpose else _PLAZO_STEMS
+            if verbatim_stem is not None:
+                stems = stems + (verbatim_stem,)
             example = _extraccion_example(
                 doc, ctx,
                 suffix=f"plazo-{i}", window=window, value=hit.value,
@@ -1310,6 +1333,8 @@ def offline_extraccion(
                 else _EXTRACCION_PLAZO_VARIANTS
             )
             stems = _disambiguated_plazo_stems(purpose, "fecha") if purpose else _FECHA_STEMS
+            if verbatim_stem is not None:
+                stems = stems + (verbatim_stem,)
             example = _extraccion_example(
                 doc, ctx,
                 suffix=f"fecha-{i}", window=window, value=hit.value,

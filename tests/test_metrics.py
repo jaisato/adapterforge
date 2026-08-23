@@ -135,6 +135,19 @@ def test_time_notation_dot_vs_colon():
     assert exact_match("a las 9.30 horas", "a las 9:30 horas")
 
 
+def test_containment_ignores_grammatical_articles():
+    # Caso real eb-142: «en un plazo de» vs «en el plazo de» costaba 0.45.
+    assert contains_match(
+        "Las solicitudes se presentarán en un plazo de veinte días hábiles.",
+        "en el plazo de veinte días hábiles",
+    )
+    # Valores distintos siguen sin casar.
+    assert not contains_match(
+        "Las solicitudes se presentarán en un plazo de diez días hábiles.",
+        "en el plazo de veinte días hábiles",
+    )
+
+
 def test_iso_and_spanish_dates_are_equivalent():
     # La base respondía «2028-07-01» a referencias «1 de julio de 2028».
     assert exact_match("2028-07-01", "1 de julio de 2028")
