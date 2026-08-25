@@ -45,3 +45,6 @@ Thumbs.db
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 graft/
+
+# Splits de trabajo solo-offline (el canónico con teacher sí se versiona)
+data/processed/juristune-*-offline_*.jsonl

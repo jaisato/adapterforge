@@ -19,9 +19,11 @@ help: ## Lista los objetivos disponibles
 
 # NOTA: los datasets juristune-v3_*/v4_*/v5_*/v6_* commiteados en data/processed/
 # son los canónicos (cada versión quedó congelada con el código de su época).
-# Regenerar con el código actual produce el contenido v6: por eso los targets
-# de ingesta escriben SIEMPRE el prefijo de la versión vigente (v6).
-data-v6: ## Ingesta v6: resumen denso + ecos verbatim + filtro + splits por doc
+# El dataset CANÓNICO (juristune-v6_*) incluye los ejemplos del teacher y solo
+# lo escribe data-v6-teacher; data-v6 a secas (solo offline) escribe el prefijo
+# de trabajo juristune-v6-offline_* para no pisar el canónico sin el teacher
+# (ya ocurrió dos veces: 386e55f y este fix).
+data-v6: ## Ingesta v6 SOLO OFFLINE (prefijo de trabajo; el canónico lo escribe data-v6-teacher)
 	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl \
 		--output data/interim/sft_raw_v6.jsonl --offline --balance default
 	$(PY) -m adapterforge.data.filter --input data/interim/sft_raw_v6.jsonl \
@@ -29,7 +31,7 @@ data-v6: ## Ingesta v6: resumen denso + ecos verbatim + filtro + splits por doc
 		--output data/interim/sft_filtered_v6.jsonl \
 		--report data/interim/filter_report_v6.json
 	$(PY) -m adapterforge.data.format --input data/interim/sft_filtered_v6.jsonl \
-		--output-dir data/processed --prefix juristune-v6 --split-by doc
+		--output-dir data/processed --prefix juristune-v6-offline --split-by doc
 
 data-v6-teacher: data-v6 ## Ejemplos qa del teacher (ventana anclada) + filtro con juez LLM
 	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl \
