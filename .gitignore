@@ -48,3 +48,7 @@ graft/
 
 # Splits de trabajo solo-offline (el canónico con teacher sí se versiona)
 data/processed/juristune-*-offline_*.jsonl
+
+# Datasets generados: superan el límite de 100 MB de GitHub; se publican en HF Hub
+data/raw/corpus_boe.jsonl
+data/processed/juristune*.jsonl
