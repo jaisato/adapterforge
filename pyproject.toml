@@ -73,7 +73,12 @@ packages = ["src/adapterforge"]
 line-length = 100
 target-version = "py312"
 src = ["src", "tests"]
-extend-exclude = ["space"]
+# unsloth_compiled_cache lo escribe la propia libreria unsloth al importarla
+# (sus ficheros llevan la cabecera __UNSLOTH_VERSIONING__): es un artefacto
+# generado, no codigo del proyecto. Son 3490 de los 3491 avisos que sacaba
+# `ruff check .`, con el job de lint en rojo y el unico aviso propio enterrado
+# debajo. Reformatearlo no serviria de nada porque unsloth lo reescribe.
+extend-exclude = ["space", "unsloth_compiled_cache"]
 
 [tool.ruff.lint]
 select = [
