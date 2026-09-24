@@ -42,11 +42,26 @@ llm = Llama(model_path=model_path, n_ctx=N_CTX, n_threads=2, verbose=False)
 print("[space] modelo cargado.")
 
 
+def _text(content: str | list | dict) -> str:
+    """Texto plano de un mensaje del historial de Gradio.
+
+    Gradio 6 normaliza el historial: `content` llega como lista de partes
+    (``{"type": "text", "text": ...}``) en vez de como cadena. El chat template
+    del GGUF espera cadenas; una lista acabaría como contenido vacío o como su
+    repr, y el modelo perdería los turnos anteriores.
+    """
+    if isinstance(content, str):
+        return content
+    parts = content if isinstance(content, list) else [content]
+    texts = (p.get("text", "") for p in parts if isinstance(p, dict) and p.get("type") == "text")
+    return "".join(texts)
+
+
 def respond(message: str, history: list[dict]) -> str:
     """Genera la respuesta del adapter con el historial de la sesión."""
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for turn in history:
-        messages.append({"role": turn["role"], "content": turn["content"]})
+        messages.append({"role": turn["role"], "content": _text(turn["content"])})
     messages.append({"role": "user", "content": message})
     result = llm.create_chat_completion(
         messages=messages,
@@ -56,9 +71,12 @@ def respond(message: str, history: list[dict]) -> str:
     return result["choices"][0]["message"]["content"]
 
 
+# Gradio 6 solo usa el formato "messages" y ya no acepta el parámetro `type`.
+# api_name mantiene el endpoint /chat que publicaba Gradio 5 (en Gradio 6 se
+# llamaría /respond, como la función), para no romper clientes de gradio_client.
 demo = gr.ChatInterface(
     fn=respond,
-    type="messages",
+    api_name="chat",
     title="JurisTune — AdapterForge (demo CPU)",
     description=(
         "Adapter QLoRA jurídico-administrativo entrenado en una GPU de 8 GB. "
