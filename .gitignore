@@ -54,3 +54,6 @@ data/processed/juristune-*-offline_*.jsonl
 # Datasets generados: superan el límite de 100 MB de GitHub; se publican en HF Hub
 data/raw/corpus_boe.jsonl
 data/processed/juristune*.jsonl
+
+# Log local de las ejecuciones del teacher: no se versiona
+teacher.log
