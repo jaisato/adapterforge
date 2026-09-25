@@ -92,7 +92,11 @@ def _chat_complete_openai_compatible(
         response.raise_for_status()
     except httpx.HTTPError as exc:
         raise LlmError(f"Fallo HTTP contra {url}: {exc}") from exc
-    return _extract_content(response.json(), source=url)
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise LlmError(f"Respuesta malformada de {url}: JSON inválido") from exc
+    return _extract_content(payload, source=url)
 
 
 def _chat_complete_litellm(
