@@ -19,7 +19,9 @@ jobs:
           cache: pip
 
       - name: Instalar núcleo + dev
-        run: pip install -e ".[dev]"
+        # transformers (sin torch ni GPU) solo para el test del callback NaN-abort,
+        # que hereda de TrainerCallback; misma horquilla que el extra `train`.
+        run: pip install -e ".[dev]" "transformers>=4.51,<4.57"
 
       - name: Lint (ruff)
         run: ruff check .

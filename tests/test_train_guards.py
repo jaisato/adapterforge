@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 from adapterforge.config import load_experiment_config
-from adapterforge.train.callbacks import AbortOnNonFiniteLoss
 from adapterforge.train.common import (
     OFFICIAL_CHAT_TEMPLATE_PATH,
     git_sha,
@@ -42,6 +41,12 @@ class _Control:
 
 
 def test_abort_on_non_finite_loss_flags_and_stops():
+    # El callback hereda de transformers.TrainerCallback, que llega con el extra
+    # `train`: sin transformers este test se salta, en vez de romper la recogida
+    # de todo el fichero.
+    pytest.importorskip("transformers")
+    from adapterforge.train.callbacks import AbortOnNonFiniteLoss
+
     callback = AbortOnNonFiniteLoss()
     control = _Control()
     callback.on_log(None, _State(), control, logs={"loss": 1.5})
