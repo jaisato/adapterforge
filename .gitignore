@@ -52,3 +52,7 @@ data/processed/juristune-*-offline_*.jsonl
 # Datasets generados: superan el límite de 100 MB de GitHub; se publican en HF Hub
 data/raw/corpus_boe.jsonl
 data/processed/juristune*.jsonl
+
+# Generated at runtime by Unsloth and local teacher runs: never version
+unsloth_compiled_cache/
+teacher.log
