@@ -36,6 +36,8 @@ data/interim/
 # Cachés de modelos
 .hf_cache/
 .cache/
+# Trainers parcheados que Unsloth genera en cada entrenamiento
+unsloth_compiled_cache/
 
 # IDE / SO
 .idea/
