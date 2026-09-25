@@ -1,2 +1,0 @@
-nohup: ignoring input
-[synthesize] 1200 ejemplos SFT online (qwen2.5:7b-instruct) -> data/interim/sft_teacher.jsonl

@@ -26,6 +26,7 @@ opciones de formateo avanzado.
 from __future__ import annotations
 
 import argparse
+import math
 import random
 from pathlib import Path
 from typing import Any
@@ -98,6 +99,17 @@ def to_dpo_record(record: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _validate_ratios(ratios: tuple[float, float, float]) -> None:
+    if (
+        len(ratios) != 3
+        or any(not math.isfinite(ratio) or ratio < 0 for ratio in ratios)
+        or abs(sum(ratios) - 1.0) > 1e-6
+    ):
+        raise ValueError(
+            f"Los ratios deben ser tres valores finitos no negativos que sumen 1: {ratios}"
+        )
+
+
 def split_records(
     records: list[dict[str, Any]],
     seed: int = 42,
@@ -109,14 +121,22 @@ def split_records(
     (la val-loss deja de detectar sobreajuste). Para datasets anclados usa
     :func:`split_records_by_doc`. Se mantiene para ejemplos sin doc_id.
     """
-    if abs(sum(ratios) - 1.0) > 1e-6:
-        raise ValueError(f"Los ratios deben sumar 1.0 (recibido {ratios})")
+    _validate_ratios(ratios)
     shuffled = list(records)
     random.Random(seed).shuffle(shuffled)
     total = len(shuffled)
-    n_val = max(1, round(total * ratios[1])) if total >= 3 else 0
-    n_test = max(1, round(total * ratios[2])) if total >= 3 else 0
+    minimum = 1 if total >= 3 else 0
+    n_val = min(total, max(minimum, round(total * ratios[1]))) if ratios[1] else 0
+    n_test = (
+        min(total - n_val, max(minimum, round(total * ratios[2]))) if ratios[2] else 0
+    )
     n_train = total - n_val - n_test
+    if not ratios[0] and n_train:
+        if ratios[1] >= ratios[2]:
+            n_val += n_train
+        else:
+            n_test += n_train
+        n_train = 0
     return {
         "train": shuffled[:n_train],
         "val": shuffled[n_train : n_train + n_val],
@@ -141,8 +161,7 @@ def split_records_by_doc(
     hasta cubrir sus cuotas de EJEMPLOS; el resto va a train. Los registros
     sin doc_id (ejemplos generales) se reparten aparte a nivel de ejemplo.
     """
-    if abs(sum(ratios) - 1.0) > 1e-6:
-        raise ValueError(f"Los ratios deben sumar 1.0 (recibido {ratios})")
+    _validate_ratios(ratios)
     by_doc: dict[str, list[dict[str, Any]]] = {}
     general: list[dict[str, Any]] = []
     for record in records:
@@ -168,7 +187,8 @@ def split_records_by_doc(
             splits["test"].extend(bucket)
             filled_test += len(bucket)
         else:
-            splits["train"].extend(bucket)
+            fallback = "train" if ratios[0] else ("val" if ratios[1] >= ratios[2] else "test")
+            splits[fallback].extend(bucket)
 
     if general:
         general_splits = split_records(general, seed=seed, ratios=ratios)

@@ -62,3 +62,15 @@ def test_openai_backend_requires_api_base_and_valid_backend():
         chat_complete([{"role": "user", "content": "x"}], "m", backend="openai")
     with pytest.raises(ValueError, match="Backend LLM desconocido"):
         chat_complete([{"role": "user", "content": "x"}], "m", backend="magico")
+
+
+@pytest.mark.parametrize("body", [b"", b"<html>upstream error</html>", b"{invalid"])
+@respx.mock
+def test_success_response_with_invalid_json_raises_llm_error(body):
+    respx.post(f"{API_BASE}/chat/completions").mock(
+        return_value=httpx.Response(200, content=body)
+    )
+    with pytest.raises(LlmError, match="JSON"):
+        chat_complete(
+            [{"role": "user", "content": "x"}], "m", backend="openai", api_base=API_BASE
+        )
