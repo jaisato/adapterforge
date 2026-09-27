@@ -14,6 +14,9 @@ env:
   METRICS: artifacts/qlora_qwen3-4b/metrics.json
   BENCH_MIN_SCORE: "0.55"
 
+permissions:
+  contents: read
+
 jobs:
   evaluate-and-publish:
     # GPU necesaria para servir el adapter durante la evaluación.
