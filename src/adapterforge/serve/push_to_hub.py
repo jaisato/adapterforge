@@ -130,6 +130,9 @@ def push(
         repo_id=repo_id,
         repo_type="model",
         ignore_patterns=list(UPLOAD_IGNORE_PATTERNS),
+        # ``ignore_patterns`` solo evita subidas nuevas: borra también en el
+        # mismo commit las copias que una publicación anterior dejara en el Hub.
+        delete_patterns=list(UPLOAD_IGNORE_PATTERNS),
         commit_message=f"Publica adapter {metrics.get('experiment', '')} "
         f"({metrics.get('phase', 'sft')}, {metrics.get('steps', '?')} steps)",
     )

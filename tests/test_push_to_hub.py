@@ -51,3 +51,6 @@ def test_training_args_pickle_is_never_uploaded(
     (call,) = _FakeApi.calls
     assert "training_args.bin" in call["ignore_patterns"]
     assert "checkpoint-*" in call["ignore_patterns"]
+    # Lo que una publicación anterior ya subió se borra del Hub en el mismo commit.
+    assert "training_args.bin" in call["delete_patterns"]
+    assert "checkpoint-*" in call["delete_patterns"]
