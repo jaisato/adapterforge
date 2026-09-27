@@ -164,3 +164,19 @@ def test_strip_response_artifacts():
     assert strip_response_artifacts("texto normal") == "texto normal"
     # <think> sin cerrar = razonamiento truncado: no hay respuesta que puntuar.
     assert strip_response_artifacts("<think>El plazo creo que son 15 días...") == ""
+
+
+@pytest.mark.parametrize("prediction,reference", [
+    ("El plazo es de 120 días", "20 días"),
+    ("La multa es de 17500 euros", "7500 euros"),
+    ("El plazo es de 120 días", "un plazo de 20 días"),
+    ("Es extralegal", "legal"),
+])
+def test_contains_match_requires_complete_tokens(prediction, reference):
+    assert not contains_match(prediction, reference)
+
+
+def test_field_match_does_not_accept_a_numeric_suffix():
+    score, detail = field_exact_match('{"plazo": "120 días"}', {"plazo": "20 días"})
+    assert score == 0.0
+    assert detail == {"plazo": False}

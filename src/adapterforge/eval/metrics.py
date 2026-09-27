@@ -218,12 +218,12 @@ def contains_match(prediction: str, reference: str) -> bool:
     normalized_reference = normalize_text(reference)
     if not normalized_reference:
         return False
-    if normalized_reference in normalize_text(prediction):
+    if f" {normalized_reference} " in f" {normalize_text(prediction)} ":
         return True
     stripped_reference = _normalize_without_articles(reference)
     if not stripped_reference:
         return False
-    return stripped_reference in _normalize_without_articles(prediction)
+    return f" {stripped_reference} " in f" {_normalize_without_articles(prediction)} "
 
 
 def _lcs_length(a: list[str], b: list[str]) -> int:
