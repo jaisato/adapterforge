@@ -34,6 +34,20 @@ from adapterforge.settings import get_settings
 _PLACEHOLDER = re.compile(r"\{\{\s*([a-z_0-9]+)\s*\}\}")
 DEFAULT_TEMPLATE = Path("serve/templates/model_card.md")
 
+# Lo que ``trainer.save_model`` deja junto al adapter y no debe publicarse.
+# ``training_args.bin`` es el pickle completo de la configuración del Trainer
+# (incluye ``hub_token`` si se pasó y rutas locales); el resto son estados de
+# optimizador/scheduler/RNG que sólo sirven para reanudar en esta máquina.
+UPLOAD_IGNORE_PATTERNS: tuple[str, ...] = (
+    "training_args.bin",
+    "optimizer.pt",
+    "scheduler.pt",
+    "scaler.pt",
+    "rng_state*",
+    "checkpoint-*",
+    ".env",
+)
+
 
 def render_model_card(template_text: str, context: dict[str, Any]) -> str:
     """Sustituye ``{{claves}}`` del template; falla si falta alguna."""
@@ -115,6 +129,7 @@ def push(
         folder_path=str(adapter_path),
         repo_id=repo_id,
         repo_type="model",
+        ignore_patterns=list(UPLOAD_IGNORE_PATTERNS),
         commit_message=f"Publica adapter {metrics.get('experiment', '')} "
         f"({metrics.get('phase', 'sft')}, {metrics.get('steps', '?')} steps)",
     )
