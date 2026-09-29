@@ -17,11 +17,17 @@ concurrency:
   group: smoke-train-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   smoke:
     # Runner propio con GPU (los runners gratuitos de GitHub no tienen).
     # Etiquetas configuradas al registrar el runner en la máquina WSL2.
     runs-on: [self-hosted, gpu]
+    # Nunca código de un fork en el runner propio: un PR externo ejecutaría lo
+    # que quisiera en la máquina WSL2 con la GPU, la caché de HF y la red local.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4

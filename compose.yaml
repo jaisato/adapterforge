@@ -47,8 +47,10 @@ services:
       mlflow server --host 0.0.0.0 --port 5000
       --backend-store-uri sqlite:////mlflow/mlflow.db
       --artifacts-destination /mlflow/artifacts
+    # Sólo en loopback: el servidor de MLflow no tiene autenticación. El
+    # trainer lo alcanza por la red de compose (http://mlflow:5000).
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     volumes:
       - mlflow-data:/mlflow
 
@@ -64,8 +66,9 @@ services:
       --enable-lora
       --max-lora-rank 32
       --lora-modules juristune=/adapters/juristune
+    # Sólo en loopback: el endpoint OpenAI-compatible de vLLM no pide API key.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - HF_HOME=/root/.cache/huggingface
     volumes:

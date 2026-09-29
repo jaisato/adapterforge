@@ -34,7 +34,7 @@ Repository = "https://github.com/jairosarabia/adapterforge"
 [project.optional-dependencies]
 # Calidad: tests sin GPU ni red (respx mockea el path HTTP OpenAI-compatible).
 dev = [
-    "pytest>=8.2,<9",
+    "pytest>=9.0.3,<10",
     "ruff>=0.6,<1",
     "respx>=0.21,<1",
 ]

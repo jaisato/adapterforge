@@ -11,6 +11,9 @@ on:
     tags: ["v*"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   deploy-space:
     runs-on: ubuntu-latest
