@@ -224,7 +224,7 @@ Dos niveles, ambos validados con pydantic:
 
 | Workflow | Disparador | Qué hace |
 |---|---|---|
-| `ci.yml` | push/PR | `ruff check` + `pytest` (núcleo sin GPU/red) en ubuntu-latest |
+| `ci.yml` | push a master / PR / manual | Workflow reutilizable [`jaisato/.github` python-ci](https://github.com/jaisato/.github): `ruff check` + `pytest` (Python 3.12, núcleo sin GPU/red) y `pip-audit` informativo; más `actionlint` sobre los cuatro workflows. Acciones ancladas a SHA (Dependabot las actualiza semanalmente) |
 | `smoke-train.yml` | PR que toca `train/**`, `configs/**`, Dockerfile o el sample SFT | Runner `[self-hosted, gpu]`: construye la imagen, ejecuta `make train-smoke` (30 pasos reales) y **verifica que la loss final < inicial** parseando `metrics.json` |
 | `release-hub.yml` | tag `v*` | Levanta vLLM con el adapter, corre `domain_bench` con `--min-score` como gate y, si pasa, publica en HF Hub con `HF_TOKEN` |
 | `deploy-hf.yml` | tag `v*` / manual | Sube `space/` al Space `Jaisato/adapterforge-demo` |
