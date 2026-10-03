@@ -14,7 +14,7 @@ short_description: Adapter QLoRA jurídico-administrativo servido en CPU (GGUF)
 # JurisTune — demo pública (CPU)
 
 Demo del adapter **JurisTune** entrenado con
-[AdapterForge](https://github.com/jairosarabia/adapterforge): resúmenes
+[AdapterForge](https://github.com/jaisato/adapterforge): resúmenes
 estructurados, Q&A con cita y extracción de obligaciones/plazos sobre
 normativa española.
 
