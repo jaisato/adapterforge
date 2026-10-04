@@ -15,8 +15,8 @@ Uso::
     python -m adapterforge.data.pull --list           # ficheros del dataset
     make data-pull [DATA_VERSION=v5]
 
-Requiere un token con acceso de lectura al dataset: ``HF_TOKEN`` o
-``AF_HF_TOKEN`` en el entorno/``.env``, o la sesión de ``hf auth login``.
+Requiere un token con acceso de lectura al dataset: ``AF_HF_TOKEN`` o
+``HF_TOKEN`` en el entorno o en el ``.env``, o la sesión de ``hf auth login``.
 ``huggingface_hub`` se importa de forma perezosa (extra ``hub`` de
 ``pyproject.toml``).
 """
@@ -24,12 +24,11 @@ Requiere un token con acceso de lectura al dataset: ``HF_TOKEN`` o
 from __future__ import annotations
 
 import argparse
-import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from adapterforge.settings import get_settings
+from adapterforge.settings import resolve_hf_token
 
 DATASET_REPO_ID = "Jaisato/juristune-datasets"
 CORPUS_FILE = "data/raw/corpus_boe.jsonl"
@@ -60,8 +59,8 @@ def allow_patterns(version: str, *, corpus: bool = True) -> list[str]:
 
 
 def resolve_token(explicit: str | None = None) -> str | None:
-    """Token de lectura: ``--token`` > ``HF_TOKEN`` > ``AF_HF_TOKEN`` > sesión."""
-    return explicit or os.environ.get("HF_TOKEN") or get_settings().hf_token or None
+    """Token de lectura (ver :func:`adapterforge.settings.resolve_hf_token`)."""
+    return resolve_hf_token(explicit)
 
 
 def pull(
