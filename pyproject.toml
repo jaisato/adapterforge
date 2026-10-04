@@ -66,9 +66,10 @@ track = [
     "mlflow>=2.15,<4",
 ]
 # Hugging Face Hub: descarga de datasets (data.pull), publicación del adapter
-# (serve.push_to_hub) y del Space (scripts/deploy_space.py).
+# (serve.push_to_hub) y del Space (scripts/deploy_space.py). >=0.34: primera
+# versión con la CLI `hf` (`hf download`, `hf auth login`) que cita el README.
 hub = [
-    "huggingface_hub>=0.30,<1",
+    "huggingface_hub>=0.34,<1",
 ]
 
 [tool.hatch.build.targets.wheel]
