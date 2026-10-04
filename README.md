@@ -59,8 +59,11 @@ las anteriores quedaron congeladas como `configs/qlora_qwen3-4b_v*.yaml` y
 QLoRA r=16/alpha=32 sobre los 7 módulos de atención y MLP de
 `Qwen/Qwen3-4B-Instruct-2507`, dataset `juristune-v6` (4 024 train / 225 val /
 226 test, split por documento), seq_len 2048, lr 1e-4, 2 épocas con early
-stopping por `eval_loss`, Unsloth activo. En la GPU de 8 GB tardó 2 h 59 min
-(504 pasos; loss de entrenamiento 1.266 → 0.008, `eval_loss` final 0.023).
+stopping por `eval_loss`, Unsloth activo. El run entrenó con 4 020 ejemplos y
+validó con 224: `train.sft` descarta los que no caben en `seq_len` (4 de train
+y 1 de val; `val_examples: 224` en las métricas). En la GPU de 8 GB tardó
+2 h 59 min (504 pasos; loss de entrenamiento 1.266 → 0.008, `eval_loss` final
+0.023).
 Fuente: [`evals/results/v6/train_metrics.json`](evals/results/v6/train_metrics.json)
 y [`train_experiment.json`](evals/results/v6/train_experiment.json), copiados
 del `artifacts/qlora_qwen3-4b-v6/` del run del 2026-08-25 (el `git_sha`
@@ -76,10 +79,10 @@ del caso es la media) y los cuatro modelos **intercalados en la misma sesión**
 
 | Modelo (Q4_K_M) | extract (EM por campos) | qa (containment / ROUGE-L) | resumen (ROUGE-L) | **overall** |
 |---|---:|---:|---:|---:|
-| Base `Qwen3-4B-Instruct-2507` | 1.000 | 0.819 | 0.637 | **0.840** |
-| JurisTune v4 | 0.955 | 0.947 | 0.734 | 0.891 |
+| Base `Qwen3-4B-Instruct-2507` | 1.000 | 0.818 | 0.637 | **0.840** |
+| JurisTune v4 | 0.955 | 0.947 | 0.734 | 0.890 |
 | JurisTune v5 | 1.000 | 0.934 | 0.716 | 0.899 |
-| **JurisTune v6** (publicado) | **1.000** | **0.922** | **0.726** | **0.898** |
+| **JurisTune v6** (final; se publicará en v0.1.0) | **1.000** | **0.922** | **0.726** | **0.898** |
 
 - **v6 − base**: delta medio pareado por caso **+0.058** (SD 0.240, SE 0.023,
   n=111), IC 95 % (+0.014, +0.103): el IC excluye 0. 14 casos regresan de
@@ -90,10 +93,15 @@ del caso es la media) y los cuatro modelos **intercalados en la misma sesión**
   generado con `python -m adapterforge.eval.report` a partir de los
   `results.json` de [`evals/results/v6/bench-v2-final/`](evals/results/v6/bench-v2-final/)
   (incluyen las tres predicciones crudas de cada caso y los parámetros de
-  generación). Las puntuaciones se recalcularon con la métrica actual tras la
+  generación). La tabla promedia las puntuaciones por caso sin redondeos
+  intermedios; el informe parte de los `summary` de cada `results.json`, ya
+  redondeados a 4 decimales, y por eso muestra 0.819 en `qa` de la base.
+  Las puntuaciones se recalcularon con la métrica actual tras la
   corrección de `618db9f` (containment por tokens completos) y no cambia
-  ningún caso. Un segundo run solo base-vs-v6 (`make eval-pair`, misma mañana)
-  dio 0.840 → 0.898 con IC 95 % (+0.013, +0.104).
+  ningún caso. Un segundo run solo base-vs-v6 del mismo día (`make eval-pair`
+  a las 09:21 UTC; el de la tabla es de las 11:30 UTC) dio 0.840 → 0.898 con
+  IC 95 % (+0.013, +0.104): `results.json` e informe en
+  [`evals/results/v6/pair/`](evals/results/v6/pair/).
 - **Límites**: métricas deterministas (EM/containment/ROUGE-L) sin juez
   humano ni LLM; n=111 casos de un solo benchmark propio; la regresión en
   `resumen` sobre varios casos es real y el IC es ancho. No es asesoramiento
@@ -234,18 +242,28 @@ con la misma disposición de carpetas que este repositorio:
 | `data/processed/juristune_dpo.jsonl` | 1 500 pares de preferencia offline (v1) | 139 MB |
 
 Descarga (requiere un token de **lectura** con acceso al dataset: `HF_TOKEN`
-o `AF_HF_TOKEN` en el entorno/`.env`, o la sesión de `hf auth login`):
+o `AF_HF_TOKEN` en el entorno o en el `.env` del directorio de trabajo, que con
+`make` es la raíz del repositorio, o la sesión de `hf auth login`; mejor no
+pasarlo con `--token`, que queda en el historial del shell y en `ps`):
 
 ```bash
-pip install -e ".[hub]"                  # huggingface_hub
+pip install -e ".[hub]"                  # huggingface_hub >= 0.34 (incluye la CLI `hf`)
 make data-pull                           # corpus BOE + juristune-v6_* en data/raw y data/processed
 make data-pull DATA_VERSION=v3           # otra versión (v1, v2, v2b, v3, v4, v5, v6 o all ≈ 1,3 GB)
+make data-pull FORCE=1                   # sustituye también los ficheros que ya existen en local
 python -m adapterforge.data.pull --list  # inventario del dataset con tamaños
 
-# Equivalente con la CLI de huggingface_hub:
+# Equivalente con la CLI de huggingface_hub (sin las salvaguardas de abajo):
 hf download Jaisato/juristune-datasets --repo-type dataset --local-dir . \
   --include "data/raw/corpus_boe.jsonl" "data/processed/juristune-v6_*.jsonl"
 ```
+
+`data.pull` descarga en la raíz del repositorio git aunque se lance desde un
+subdirectorio, aborta antes de bajar nada si git no ignoraría algún fichero en
+su destino (un `--dest data` los dejaría en `data/data/...`, fuera del
+`.gitignore`) y omite los que ya existen en local, como unos
+`juristune-v6_*.jsonl` regenerados con `make data-v6-teacher`, salvo
+`FORCE=1` (`--force`).
 
 Con el corpus en `data/raw/` se regenera la ingesta v6:
 `python -m adapterforge.data.extract --input data/raw/corpus_boe.jsonl --output data/interim/documents.jsonl`
@@ -288,7 +306,8 @@ Dos niveles, ambos validados con pydantic:
 1. **Proceso** (`.env`, prefijo `AF_`, ver `.env.example` y
    `src/adapterforge/settings.py`): teacher/juez (`AF_TEACHER_MODEL`,
    `AF_JUDGE_MODEL`), endpoint OpenAI-compatible (`AF_API_BASE`, `AF_API_KEY`),
-   HF (`HF_TOKEN`, `AF_HF_REPO_ID`), MLflow (`AF_MLFLOW_TRACKING_URI`).
+   HF (`HF_TOKEN` o `AF_HF_TOKEN`, que tiene prioridad; `AF_HF_REPO_ID`),
+   MLflow (`AF_MLFLOW_TRACKING_URI`).
    Desde contenedores, el Ollama del host es
    `http://host.docker.internal:11434` (los servicios declaran
    `extra_hosts: host-gateway`).
@@ -337,11 +356,11 @@ Dos niveles, ambos validados con pydantic:
 | **vLLM multi-LoRA (GPU)** | Base residente + N adapters por petición | `docker compose --profile serve-vllm up vllm`; guía en `serve/vllm_lora/README.md` |
 | **Ollama (CPU/edge/VPS)** | GGUF Q4_K_M + Modelfile | `make export` y `ollama create juristune -f artifacts/gguf/Modelfile` |
 
-> Estado del Hub (2026-10-03): solo existe el dataset `Jaisato/juristune-datasets`.
+> Estado del Hub (2026-10-04): solo existe el dataset `Jaisato/juristune-datasets`.
 > El repo del adapter y el Space se crean en la primera release (`release-hub.yml`
 > y `deploy-hf.yml` con el tag `v*`); el repo GGUF que carga el Space
 > (`Jaisato/juristune-qwen3-4b-gguf`) hay que publicarlo aparte con el GGUF de
-> `make export` (pendiente: `TODO(jairo)` en `serve/push_to_hub.py`).
+> `make export` (pendiente: `TODO(jairo)` en `src/adapterforge/serve/push_to_hub.py`).
 
 ### Secrets de GitHub Actions
 
@@ -391,23 +410,26 @@ adapterforge/
 │   └── (corpus_boe, juristune-v*)  # no versionados: `make data-pull` desde HF (Jaisato/juristune-datasets)
 ├── evals/
 │   ├── domain_bench_v2.jsonl     # 111 casos con referencia (extract/qa/resumen); domain_bench.jsonl = 25 originales
-│   └── results/v6/               # results.json (base, v4, v5, v6) + informe + métricas de entrenamiento de la v6
+│   └── results/v6/               # bench-v2-final/ (base, v4, v5, v6) + pair/ (base vs v6) + informe + métricas del run
 ├── src/adapterforge/
-│   ├── settings.py               # pydantic-settings (env AF_)
+│   ├── settings.py               # pydantic-settings (env AF_ o .env; token HF_TOKEN/AF_HF_TOKEN)
 │   ├── config.py                 # ExperimentConfig + validación VRAM/OOM
 │   ├── llm.py                    # cliente litellm / OpenAI-compatible (httpx)
 │   ├── jsonl.py                  # utilidades JSONL (stdlib)
-│   ├── data/                     # pull (HF) · extract · synthesize (--offline) · filter · format
-│   ├── train/                    # sft.py · dpo.py · runtime (Unsloth try-import) · common
+│   ├── data/                     # pull (HF) · extract · synthesize/ (paquete, --offline) · filter · format · budget
+│   ├── train/                    # sft.py · dpo.py · runtime (Unsloth try-import) · common · callbacks · templates/
 │   ├── eval/                     # metrics (EM/ROUGE-L propio) · domain_bench · report
 │   └── serve/                    # merge_adapter · push_to_hub · render_modelfile
-├── serve/                        # export_gguf.sh · ollama/Modelfile.j2 · vllm_lora/ · templates/
+├── serve/                        # export_gguf.sh · ollama/Modelfile.j2 · vllm_lora/ · templates/model_card.md
 ├── space/                        # demo HF Space (Gradio + llama-cpp-python CPU)
 ├── docker/Dockerfile.train       # CUDA 12.4.1, versiones fijadas, usuario no root
 ├── scripts/                      # check_smoke.py · deploy_space.py · fetch_boe_corpus.py · lm_eval_runner.sh
-├── tests/                        # ~145 tests sin GPU/red (respx para el path HTTP)
+├── tests/                        # 172 tests sin GPU/red (respx para el path HTTP)
 ├── docs/adr/                     # 3 decisiones de arquitectura
-└── .github/workflows/            # ci · smoke-train · release-hub · deploy-hf
+└── .github/
+    ├── workflows/                # ci (reutilizable python-ci + actionlint) · smoke-train · release-hub · deploy-hf
+    ├── dependabot.yml            # actualiza cada semana los SHA de las acciones
+    └── actionlint.yaml           # etiqueta `gpu` del runner self-hosted
 ```
 
 ## Licencia
