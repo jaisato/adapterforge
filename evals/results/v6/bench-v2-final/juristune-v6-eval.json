@@ -1,0 +1,3434 @@
+{
+  "model": "juristune-v6-eval",
+  "summary": {
+    "overall": 0.8982,
+    "by_type": {
+      "extract": 1.0,
+      "qa": 0.9222,
+      "resumen": 0.7257
+    },
+    "n_cases": 111
+  },
+  "missing_predictions": [],
+  "cases": [
+    {
+      "id": "eb-001-plazo-solicitud",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"tres meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"tres meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"tres meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-002-plazo-justificacion",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"seis meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"seis meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"seis meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-003-registro-jornada",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "fecha_limite": true,
+        "conservacion": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true,
+            "conservacion": true
+          },
+          "prediction": "{\"fecha_limite\": \"1 de octubre de 2026\", \"conservacion\": \"cuatro años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true,
+            "conservacion": true
+          },
+          "prediction": "{\"fecha_limite\": \"1 de octubre de 2026\", \"conservacion\": \"cuatro años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true,
+            "conservacion": true
+          },
+          "prediction": "{\"fecha_limite\": \"1 de octubre de 2026\", \"conservacion\": \"cuatro años\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-004-multa-registro",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "multa_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"7.500 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"7.500 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"7.500 euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-005-revision-evaluacion",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"doce meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"doce meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"doce meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-006-adaptacion-ia",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"dieciocho meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"dieciocho meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"dieciocho meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-007-factura-electronica",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "umbral": true,
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "umbral": true,
+            "plazo": true
+          },
+          "prediction": "{\"umbral\": \"ocho millones de euros\", \"plazo\": \"doce meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "umbral": true,
+            "plazo": true
+          },
+          "prediction": "{\"umbral\": \"ocho millones de euros\", \"plazo\": \"doce meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "umbral": true,
+            "plazo": true
+          },
+          "prediction": "{\"umbral\": \"ocho millones de euros\", \"plazo\": \"doce meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-008-bono-alquiler",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "cuantia": true,
+        "duracion_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true,
+            "duracion_maxima": true
+          },
+          "prediction": "{\"cuantia\": \"250 euros\", \"duracion_maxima\": \"veinticuatro meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true,
+            "duracion_maxima": true
+          },
+          "prediction": "{\"cuantia\": \"250 euros\", \"duracion_maxima\": \"veinticuatro meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true,
+            "duracion_maxima": true
+          },
+          "prediction": "{\"cuantia\": \"250 euros\", \"duracion_maxima\": \"veinticuatro meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-009-incidentes-ciber",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo_notificacion": true,
+        "plazo_informe": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true,
+            "plazo_informe": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"veinticuatro horas\", \"plazo_informe\": \"setenta y dos horas\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true,
+            "plazo_informe": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"veinticuatro horas\", \"plazo_informe\": \"setenta y dos horas\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true,
+            "plazo_informe": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"veinticuatro horas\", \"plazo_informe\": \"setenta y dos horas\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-010-puntos-recarga",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "dotacion": true,
+        "fecha_limite": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "dotacion": true,
+            "fecha_limite": true
+          },
+          "prediction": "{\"dotacion\": \"una estación de recarga por cada cuarenta plazas\", \"fecha_limite\": \"1 de enero de 2027\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "dotacion": true,
+            "fecha_limite": true
+          },
+          "prediction": "{\"dotacion\": \"una estación de recarga por cada cuarenta plazas\", \"fecha_limite\": \"1 de enero de 2027\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "dotacion": true,
+            "fecha_limite": true
+          },
+          "prediction": "{\"dotacion\": \"una estación de recarga por cada cuarenta plazas\", \"fecha_limite\": \"1 de enero de 2027\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-011-auditoria-fecha",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.3226,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.3226,
+          "contains": true,
+          "prediction": "Los ayuntamientos deberán disponer de una auditoría energética de cada edificio incluido en el ámbito de aplicación antes del 30 de junio de 2027 [BOE-A-2026-09034]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.3226,
+          "contains": true,
+          "prediction": "Los ayuntamientos deberán disponer de una auditoría energética de cada edificio incluido en el ámbito de aplicación antes del 30 de junio de 2027 [BOE-A-2026-09034]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.3226,
+          "contains": true,
+          "prediction": "Los ayuntamientos deberán disponer de una auditoría energética de cada edificio incluido en el ámbito de aplicación antes del 30 de junio de 2027 [BOE-A-2026-09034]."
+        }
+      ]
+    },
+    {
+      "id": "eb-012-beca-cuantia",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.7442,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.7442,
+          "contains": true,
+          "prediction": "La beca consistirá en 600 euros mensuales durante el periodo de formación en empresa, con un máximo de diez mensualidades por curso académico [BOE-A-2026-09788]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.7442,
+          "contains": true,
+          "prediction": "La beca consistirá en 600 euros mensuales durante el periodo de formación en empresa, con un máximo de diez mensualidades por curso académico [BOE-A-2026-09788]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.7442,
+          "contains": true,
+          "prediction": "La beca consistirá en 600 euros mensuales durante el periodo de formación en empresa, con un máximo de diez mensualidades por curso académico [BOE-A-2026-09788]."
+        }
+      ]
+    },
+    {
+      "id": "eb-013-teletrabajo-dias",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.4828,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.4828,
+          "contains": true,
+          "prediction": "La prestación a distancia no podrá superar los tres días semanales, garantizando la atención presencial de los servicios [BOE-A-2026-12490]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4828,
+          "contains": true,
+          "prediction": "La prestación a distancia no podrá superar los tres días semanales, garantizando la atención presencial de los servicios [BOE-A-2026-12490]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4828,
+          "contains": true,
+          "prediction": "La prestación a distancia no podrá superar los tres días semanales, garantizando la atención presencial de los servicios [BOE-A-2026-12490]."
+        }
+      ]
+    },
+    {
+      "id": "eb-014-menores-adaptacion",
+      "task_type": "qa",
+      "score": 0.26666666666666666,
+      "rouge_l": 0.2667,
+      "contains": false,
+      "score_min": 0.26666666666666666,
+      "score_max": 0.26666666666666666,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.26666666666666666,
+          "rouge_l": 0.2667,
+          "contains": false,
+          "prediction": "Los prestadores tienen un plazo de seis meses para adaptar sus servicios a la ley [BOE-A-2026-11015]."
+        },
+        {
+          "score": 0.26666666666666666,
+          "rouge_l": 0.2667,
+          "contains": false,
+          "prediction": "Los prestadores tienen un plazo de seis meses para adaptar sus servicios a la ley [BOE-A-2026-11015]."
+        },
+        {
+          "score": 0.26666666666666666,
+          "rouge_l": 0.2667,
+          "contains": false,
+          "prediction": "Los prestadores tienen un plazo de seis meses para adaptar sus servicios a la ley [BOE-A-2026-11015]."
+        }
+      ]
+    },
+    {
+      "id": "eb-015-textil-obligados",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.5833,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.5833,
+          "contains": true,
+          "prediction": "Los establecimientos comerciales de textil con superficie de venta superior a cuatrocientos metros cuadrados deberán disponer de puntos visibles de recogida separada de residuos textiles y garantizar su vaciado periódico [BOE-A-2026-11764]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5833,
+          "contains": true,
+          "prediction": "Los establecimientos comerciales de textil con superficie de venta superior a cuatrocientos metros cuadrados deberán disponer de puntos visibles de recogida separada de residuos textiles y garantizar su vaciado periódico [BOE-A-2026-11764]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5833,
+          "contains": true,
+          "prediction": "Los establecimientos comerciales de textil con superficie de venta superior a cuatrocientos metros cuadrados deberán disponer de puntos visibles de recogida separada de residuos textiles y garantizar su vaciado periódico [BOE-A-2026-11764]."
+        }
+      ]
+    },
+    {
+      "id": "eb-016-responsable-seguridad",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.2745,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.2745,
+          "contains": true,
+          "prediction": "Los municipios de más de veinte mil habitantes deberán designar una persona responsable de la seguridad de la información y comunicar la designación al Centro Criptológico Nacional en el plazo de tres meses, desde la entrada en vigor de esta ley [BOE-A-2026-08211]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2745,
+          "contains": true,
+          "prediction": "Los municipios de más de veinte mil habitantes deberán designar una persona responsable de la seguridad de la información y comunicar la designación al Centro Criptológico Nacional en el plazo de tres meses, desde la entrada en vigor de esta ley [BOE-A-2026-08211]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2745,
+          "contains": true,
+          "prediction": "Los municipios de más de veinte mil habitantes deberán designar una persona responsable de la seguridad de la información y comunicar la designación al Centro Criptológico Nacional en el plazo de tres meses, desde la entrada en vigor de esta ley [BOE-A-2026-08211]."
+        }
+      ]
+    },
+    {
+      "id": "eb-017-silencio-bono",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.3448,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.3448,
+          "contains": true,
+          "prediction": "El plazo máximo para resolver y notificar será de seis meses; transcurrido sin resolución expresa, la solicitud se entenderá desestimada [BOE-A-2026-07455]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.3448,
+          "contains": true,
+          "prediction": "El plazo máximo para resolver y notificar será de seis meses; transcurrido sin resolución expresa, la solicitud se entenderá desestimada [BOE-A-2026-07455]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.3448,
+          "contains": true,
+          "prediction": "El plazo máximo para resolver y notificar será de seis meses; transcurrido sin resolución expresa, la solicitud se entenderá desestimada [BOE-A-2026-07455]."
+        }
+      ]
+    },
+    {
+      "id": "eb-018-cuantia-ayudas",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.4545,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.4545,
+          "contains": true,
+          "prediction": "La cuantía de la ayuda oscilará entre 2.000 y 12.000 euros por beneficiaria [BOE-A-2026-04812]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4545,
+          "contains": true,
+          "prediction": "La cuantía de la ayuda oscilará entre 2.000 y 12.000 euros por beneficiaria [BOE-A-2026-04812]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4545,
+          "contains": true,
+          "prediction": "La cuantía de la ayuda oscilará entre 2.000 y 12.000 euros por beneficiaria [BOE-A-2026-04812]."
+        }
+      ]
+    },
+    {
+      "id": "eb-019-resumen-impulso",
+      "task_type": "resumen",
+      "score": 0.5333333333333333,
+      "rouge_l": 0.5333,
+      "score_min": 0.5333333333333333,
+      "score_max": 0.5333333333333333,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.5333333333333333,
+          "rouge_l": 0.5333,
+          "prediction": "El Real Decreto 214/2026 regula lo siguiente: La presente norma tiene por objeto regular la concesión directa de ayudas para la adopción de soluciones de digitalización por parte de pequeñas y medianas empresas y personas trabajadoras autónomas. La cuantía de la ayuda oscilará entre 2.000 y 12.000 euros por beneficiaria, en función del segmento de plantilla. Los plazos principales son tres meses; seis meses."
+        },
+        {
+          "score": 0.5333333333333333,
+          "rouge_l": 0.5333,
+          "prediction": "El Real Decreto 214/2026 regula lo siguiente: La presente norma tiene por objeto regular la concesión directa de ayudas para la adopción de soluciones de digitalización por parte de pequeñas y medianas empresas y personas trabajadoras autónomas. La cuantía de la ayuda oscilará entre 2.000 y 12.000 euros por beneficiaria, en función del segmento de plantilla. Los plazos principales son tres meses; seis meses."
+        },
+        {
+          "score": 0.5333333333333333,
+          "rouge_l": 0.5333,
+          "prediction": "El Real Decreto 214/2026 regula lo siguiente: La presente norma tiene por objeto regular la concesión directa de ayudas para la adopción de soluciones de digitalización por parte de pequeñas y medianas empresas y personas trabajadoras autónomas. La cuantía de la ayuda oscilará entre 2.000 y 12.000 euros por beneficiaria, en función del segmento de plantilla. Los plazos principales son tres meses; seis meses."
+        }
+      ]
+    },
+    {
+      "id": "eb-020-resumen-jornada",
+      "task_type": "resumen",
+      "score": 0.8345323741007192,
+      "rouge_l": 0.8345,
+      "score_min": 0.8345323741007193,
+      "score_max": 0.8345323741007193,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.8345323741007193,
+          "rouge_l": 0.8345,
+          "prediction": "La Orden TES/512/2026 regula lo siguiente: Regular los requisitos técnicos del sistema digital de registro de la jornada laboral y las obligaciones de las empresas. Las empresas deberán implantar un sistema de registro de jornada digital e interoperable antes del 1 de octubre de 2026. Los registros deberán conservarse durante cuatro años. El incumplimiento podrá sancionarse con multa de hasta 7.500 euros por centro de trabajo."
+        },
+        {
+          "score": 0.8345323741007193,
+          "rouge_l": 0.8345,
+          "prediction": "La Orden TES/512/2026 regula lo siguiente: Regular los requisitos técnicos del sistema digital de registro de la jornada laboral y las obligaciones de las empresas. Las empresas deberán implantar un sistema de registro de jornada digital e interoperable antes del 1 de octubre de 2026. Los registros deberán conservarse durante cuatro años. El incumplimiento podrá sancionarse con multa de hasta 7.500 euros por centro de trabajo."
+        },
+        {
+          "score": 0.8345323741007193,
+          "rouge_l": 0.8345,
+          "prediction": "La Orden TES/512/2026 regula lo siguiente: Regular los requisitos técnicos del sistema digital de registro de la jornada laboral y las obligaciones de las empresas. Las empresas deberán implantar un sistema de registro de jornada digital e interoperable antes del 1 de octubre de 2026. Los registros deberán conservarse durante cuatro años. El incumplimiento podrá sancionarse con multa de hasta 7.500 euros por centro de trabajo."
+        }
+      ]
+    },
+    {
+      "id": "eb-021-resumen-ia",
+      "task_type": "resumen",
+      "score": 0.4098360655737705,
+      "rouge_l": 0.4098,
+      "score_min": 0.4098360655737705,
+      "score_max": 0.4098360655737705,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.4098360655737705,
+          "rouge_l": 0.4098,
+          "prediction": "La Ley 9/2026 regula lo siguiente: Cada administración pública deberá mantener un inventario público de los sistemas de inteligencia artificial que emplee en procedimientos con efectos jurídicos, publicado en el portal de transparencia. Los plazos principales son doce meses; dieciocho meses."
+        },
+        {
+          "score": 0.4098360655737705,
+          "rouge_l": 0.4098,
+          "prediction": "La Ley 9/2026 regula lo siguiente: Cada administración pública deberá mantener un inventario público de los sistemas de inteligencia artificial que emplee en procedimientos con efectos jurídicos, publicado en el portal de transparencia. Los plazos principales son doce meses; dieciocho meses."
+        },
+        {
+          "score": 0.4098360655737705,
+          "rouge_l": 0.4098,
+          "prediction": "La Ley 9/2026 regula lo siguiente: Cada administración pública deberá mantener un inventario público de los sistemas de inteligencia artificial que emplee en procedimientos con efectos jurídicos, publicado en el portal de transparencia. Los plazos principales son doce meses; dieciocho meses."
+        }
+      ]
+    },
+    {
+      "id": "eb-022-resumen-bono",
+      "task_type": "resumen",
+      "score": 0.45751633986928103,
+      "rouge_l": 0.4575,
+      "score_min": 0.4575163398692811,
+      "score_max": 0.4575163398692811,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.4575163398692811,
+          "rouge_l": 0.4575,
+          "prediction": "La Orden VAU/233/2026 regula lo siguiente: Personas de edad igual o inferior a treinta y cinco años, titulares de un contrato de arrendamiento de vivienda habitual, con ingresos iguales o inferiores a tres veces el IPREM. La cuantía es de 250 euros mensuales durante un máximo de veinticuatro meses; la renta no podrá superar los 600 euros, o 900 en mercado tensionado. Los plazos principales son 31 de diciembre de 2026; seis meses."
+        },
+        {
+          "score": 0.4575163398692811,
+          "rouge_l": 0.4575,
+          "prediction": "La Orden VAU/233/2026 regula lo siguiente: Personas de edad igual o inferior a treinta y cinco años, titulares de un contrato de arrendamiento de vivienda habitual, con ingresos iguales o inferiores a tres veces el IPREM. La cuantía es de 250 euros mensuales durante un máximo de veinticuatro meses; la renta no podrá superar los 600 euros, o 900 en mercado tensionado. Los plazos principales son 31 de diciembre de 2026; seis meses."
+        },
+        {
+          "score": 0.4575163398692811,
+          "rouge_l": 0.4575,
+          "prediction": "La Orden VAU/233/2026 regula lo siguiente: Personas de edad igual o inferior a treinta y cinco años, titulares de un contrato de arrendamiento de vivienda habitual, con ingresos iguales o inferiores a tres veces el IPREM. La cuantía es de 250 euros mensuales durante un máximo de veinticuatro meses; la renta no podrá superar los 600 euros, o 900 en mercado tensionado. Los plazos principales son 31 de diciembre de 2026; seis meses."
+        }
+      ]
+    },
+    {
+      "id": "eb-023-resumen-ciber",
+      "task_type": "resumen",
+      "score": 0.4485981308411215,
+      "rouge_l": 0.4486,
+      "score_min": 0.4485981308411215,
+      "score_max": 0.4485981308411215,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.4485981308411215,
+          "rouge_l": 0.4486,
+          "prediction": "La Ley 4/2026 regula lo siguiente: Los municipios de más de veinte mil habitantes deberán designar responsable de seguridad y comunicarlo en el plazo de tres meses. Los plazos principales son tres meses; dieciocho meses; veinticuatro horas."
+        },
+        {
+          "score": 0.4485981308411215,
+          "rouge_l": 0.4486,
+          "prediction": "La Ley 4/2026 regula lo siguiente: Los municipios de más de veinte mil habitantes deberán designar responsable de seguridad y comunicarlo en el plazo de tres meses. Los plazos principales son tres meses; dieciocho meses; veinticuatro horas."
+        },
+        {
+          "score": 0.4485981308411215,
+          "rouge_l": 0.4486,
+          "prediction": "La Ley 4/2026 regula lo siguiente: Los municipios de más de veinte mil habitantes deberán designar responsable de seguridad y comunicarlo en el plazo de tres meses. Los plazos principales son tres meses; dieciocho meses; veinticuatro horas."
+        }
+      ]
+    },
+    {
+      "id": "eb-024-resumen-factura",
+      "task_type": "resumen",
+      "score": 0.5161290322580646,
+      "rouge_l": 0.5161,
+      "score_min": 0.5161290322580646,
+      "score_max": 0.5161290322580646,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.5161290322580646,
+          "rouge_l": 0.5161,
+          "prediction": "El Real Decreto 391/2026 regula lo siguiente: Las empresas con facturación anual superior a ocho millones de euros deberán emitir factura electrónica en el plazo de doce meses; el resto, en veinticuatro meses. Las destinatarias deberán informar del estado de la factura. La multa asciende a 10.000 euros."
+        },
+        {
+          "score": 0.5161290322580646,
+          "rouge_l": 0.5161,
+          "prediction": "El Real Decreto 391/2026 regula lo siguiente: Las empresas con facturación anual superior a ocho millones de euros deberán emitir factura electrónica en el plazo de doce meses; el resto, en veinticuatro meses. Las destinatarias deberán informar del estado de la factura. La multa asciende a 10.000 euros."
+        },
+        {
+          "score": 0.5161290322580646,
+          "rouge_l": 0.5161,
+          "prediction": "El Real Decreto 391/2026 regula lo siguiente: Las empresas con facturación anual superior a ocho millones de euros deberán emitir factura electrónica en el plazo de doce meses; el resto, en veinticuatro meses. Las destinatarias deberán informar del estado de la factura. La multa asciende a 10.000 euros."
+        }
+      ]
+    },
+    {
+      "id": "eb-025-resumen-menores",
+      "task_type": "resumen",
+      "score": 0.3018867924528302,
+      "rouge_l": 0.3019,
+      "score_min": 0.3018867924528302,
+      "score_max": 0.3018867924528302,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.3018867924528302,
+          "rouge_l": 0.3019,
+          "prediction": "La Ley 12/2026 regula lo siguiente: Artículo 2. Verificación de edad eficaz y respetuosa con la privacidad. Los plazos principales son seis meses. La sanción económica asciende a 100.000 euros."
+        },
+        {
+          "score": 0.3018867924528302,
+          "rouge_l": 0.3019,
+          "prediction": "La Ley 12/2026 regula lo siguiente: Artículo 2. Verificación de edad eficaz y respetuosa con la privacidad. Los plazos principales son seis meses. La sanción económica asciende a 100.000 euros."
+        },
+        {
+          "score": 0.3018867924528302,
+          "rouge_l": 0.3019,
+          "prediction": "La Ley 12/2026 regula lo siguiente: Artículo 2. Verificación de edad eficaz y respetuosa con la privacidad. Los plazos principales son seis meses. La sanción económica asciende a 100.000 euros."
+        }
+      ]
+    },
+    {
+      "id": "eb-101-plan-movilidad",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"nueve meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"nueve meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"nueve meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-102-tacografo",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "fecha_limite": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true
+          },
+          "prediction": "{\"fecha_limite\": \"1 de julio de 2028\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true
+          },
+          "prediction": "{\"fecha_limite\": \"1 de julio de 2028\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true
+          },
+          "prediction": "{\"fecha_limite\": \"1 de julio de 2028\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-103-ayuda-furgoneta",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "cuantia": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"9.000 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"9.000 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"9.000 euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-104-conexion-autoconsumo",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"dos meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"dos meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"dos meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-105-umbral-comunidades",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "umbral": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "umbral": true
+          },
+          "prediction": "{\"umbral\": \"500 kilovatios\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "umbral": true
+          },
+          "prediction": "{\"umbral\": \"500 kilovatios\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "umbral": true
+          },
+          "prediction": "{\"umbral\": \"500 kilovatios\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-106-prima-biomasa",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "cuantia": true,
+        "duracion_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true,
+            "duracion_maxima": true
+          },
+          "prediction": "{\"cuantia\": \"65 euros\", \"duracion_maxima\": \"diez años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true,
+            "duracion_maxima": true
+          },
+          "prediction": "{\"cuantia\": \"65 euros\", \"duracion_maxima\": \"diez años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true,
+            "duracion_maxima": true
+          },
+          "prediction": "{\"cuantia\": \"65 euros\", \"duracion_maxima\": \"diez años\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-107-farmacovigilancia",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo_notificacion": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"quince días naturales\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"quince días naturales\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"quince días naturales\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-108-libro-registro",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "conservacion": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "conservacion": true
+          },
+          "prediction": "{\"conservacion\": \"cinco años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "conservacion": true
+          },
+          "prediction": "{\"conservacion\": \"cinco años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "conservacion": true
+          },
+          "prediction": "{\"conservacion\": \"cinco años\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-109-multa-sanitarios",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "multa_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"600.000 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"600.000 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"600.000 euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-110-becas-apoyo",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "fecha_limite": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true
+          },
+          "prediction": "{\"fecha_limite\": \"30 de septiembre de 2027\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true
+          },
+          "prediction": "{\"fecha_limite\": \"30 de septiembre de 2027\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true
+          },
+          "prediction": "{\"fecha_limite\": \"30 de septiembre de 2027\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-111-beca-residencia",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "cuantia": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"1.700 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"1.700 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"1.700 euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-112-organo-resolucion",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "organo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "organo": true
+          },
+          "prediction": "{\"organo\": \"Dirección General de Planificación y Gestión Educativa\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "organo": true
+          },
+          "prediction": "{\"organo\": \"Dirección General de Planificación y Gestión Educativa\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "organo": true
+          },
+          "prediction": "{\"organo\": \"Dirección General de Planificación y Gestión Educativa\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-113-precio-tensionado",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "cuantia": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"2.400 euros por metro cuadrado de superficie útil\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"2.400 euros por metro cuadrado de superficie útil\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"2.400 euros por metro cuadrado de superficie útil\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-114-regimen-proteccion",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "duracion_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "duracion_maxima": true
+          },
+          "prediction": "{\"duracion_maxima\": \"cincuenta años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "duracion_maxima": true
+          },
+          "prediction": "{\"duracion_maxima\": \"cincuenta años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "duracion_maxima": true
+          },
+          "prediction": "{\"duracion_maxima\": \"cincuenta años\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-115-inicio-obras",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"un año\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"un año\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"un año\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-116-reclamaciones",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"quince días hábiles\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"quince días hábiles\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"quince días hábiles\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-117-multa-alergenos",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "multa_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"cuarenta mil euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"cuarenta mil euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"cuarenta mil euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-118-plazo-regadios",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"dos meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"dos meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"dos meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-119-parada-biologica",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "duracion_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "duracion_maxima": true
+          },
+          "prediction": "{\"duracion_maxima\": \"sesenta días\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "duracion_maxima": true
+          },
+          "prediction": "{\"duracion_maxima\": \"sesenta días\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "duracion_maxima": true
+          },
+          "prediction": "{\"duracion_maxima\": \"sesenta días\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-120-multa-plagas",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "multa_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"trescientos mil euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"trescientos mil euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"trescientos mil euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-121-registro-vut",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"cuatro meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"cuatro meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"cuatro meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-122-cuantia-destinos",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "cuantia": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"15.000 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"15.000 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"15.000 euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-123-organo-bono-turistico",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "organo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "organo": true
+          },
+          "prediction": "{\"organo\": \"Secretaría de Estado de Turismo\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "organo": true
+          },
+          "prediction": "{\"organo\": \"Secretaría de Estado de Turismo\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "organo": true
+          },
+          "prediction": "{\"organo\": \"Secretaría de Estado de Turismo\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-124-plazo-contratacion",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"veinte días hábiles\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"veinte días hábiles\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo": true
+          },
+          "prediction": "{\"plazo\": \"veinte días hábiles\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-125-beca-digital",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "cuantia": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"13,50 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"13,50 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"13,50 euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-126-duracion-contratos",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "duracion_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "duracion_maxima": true
+          },
+          "prediction": "{\"duracion_maxima\": \"doce meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "duracion_maxima": true
+          },
+          "prediction": "{\"duracion_maxima\": \"doce meses\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "duracion_maxima": true
+          },
+          "prediction": "{\"duracion_maxima\": \"doce meses\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-127-archivo-residuos",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "conservacion": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "conservacion": true
+          },
+          "prediction": "{\"conservacion\": \"cinco años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "conservacion": true
+          },
+          "prediction": "{\"conservacion\": \"cinco años\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "conservacion": true
+          },
+          "prediction": "{\"conservacion\": \"cinco años\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-128-multa-plasticos",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "multa_maxima": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"25.000 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"25.000 euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "multa_maxima": true
+          },
+          "prediction": "{\"multa_maxima\": \"25.000 euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-129-umbral-combustion",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "umbral": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "umbral": true
+          },
+          "prediction": "{\"umbral\": \"cinco megavatios\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "umbral": true
+          },
+          "prediction": "{\"umbral\": \"cinco megavatios\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "umbral": true
+          },
+          "prediction": "{\"umbral\": \"cinco megavatios\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-130-notificacion-interrupciones",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo_notificacion": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"doce horas\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"doce horas\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"doce horas\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-131-cobertura-rural",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "fecha_limite": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true
+          },
+          "prediction": "{\"fecha_limite\": \"31 de marzo de 2028\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true
+          },
+          "prediction": "{\"fecha_limite\": \"31 de marzo de 2028\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "fecha_limite": true
+          },
+          "prediction": "{\"fecha_limite\": \"31 de marzo de 2028\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-132-bono-conectividad",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "cuantia": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"quinientos euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"quinientos euros\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "cuantia": true
+          },
+          "prediction": "{\"cuantia\": \"quinientos euros\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-133-conservacion-imagenes",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "conservacion": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "conservacion": true
+          },
+          "prediction": "{\"conservacion\": \"un mes\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "conservacion": true
+          },
+          "prediction": "{\"conservacion\": \"un mes\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "conservacion": true
+          },
+          "prediction": "{\"conservacion\": \"un mes\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-134-quiebras-salud",
+      "task_type": "extract",
+      "score": 1.0,
+      "fields": {
+        "plazo_notificacion": true
+      },
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"diez días naturales\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"diez días naturales\"}"
+        },
+        {
+          "score": 1.0,
+          "fields": {
+            "plazo_notificacion": true
+          },
+          "prediction": "{\"plazo_notificacion\": \"diez días naturales\"}"
+        }
+      ]
+    },
+    {
+      "id": "eb-135-expediente-judicial",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.4167,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.4167,
+          "contains": true,
+          "prediction": "Las oficinas judiciales deberán operar íntegramente con expediente judicial electrónico antes del 31 de diciembre de 2027 [BOE-A-2027-02769]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4167,
+          "contains": true,
+          "prediction": "Las oficinas judiciales deberán operar íntegramente con expediente judicial electrónico antes del 31 de diciembre de 2027 [BOE-A-2027-02769]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4167,
+          "contains": true,
+          "prediction": "Las oficinas judiciales deberán operar íntegramente con expediente judicial electrónico antes del 31 de diciembre de 2027 [BOE-A-2027-02769]."
+        }
+      ]
+    },
+    {
+      "id": "eb-136-certificaciones-plazo",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.4211,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.4211,
+          "contains": true,
+          "prediction": "Las certificaciones solicitadas a través de la sede electrónica se expedirán en el plazo máximo de tres días hábiles, contados desde la recepción de la solicitud [BOE-A-2027-04150]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4211,
+          "contains": true,
+          "prediction": "Las certificaciones solicitadas a través de la sede electrónica se expedirán en el plazo máximo de tres días hábiles, contados desde la recepción de la solicitud [BOE-A-2027-04150]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4211,
+          "contains": true,
+          "prediction": "Las certificaciones solicitadas a través de la sede electrónica se expedirán en el plazo máximo de tres días hábiles, contados desde la recepción de la solicitud [BOE-A-2027-04150]."
+        }
+      ]
+    },
+    {
+      "id": "eb-137-apoderamientos-registro",
+      "task_type": "qa",
+      "score": 0.28571428571428575,
+      "rouge_l": 0.2857,
+      "contains": false,
+      "score_min": 0.28571428571428575,
+      "score_max": 0.28571428571428575,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.28571428571428575,
+          "rouge_l": 0.2857,
+          "contains": false,
+          "prediction": "Los poderes de representación procesal deberán inscribirse en el Registro Electrónico de Apociamientos Judiciales con carácter previo a su primera utilización ante los órganos judiciales [BOE-A-2027-05904]."
+        },
+        {
+          "score": 0.28571428571428575,
+          "rouge_l": 0.2857,
+          "contains": false,
+          "prediction": "Los poderes de representación procesal deberán inscribirse en el Registro Electrónico de Apociamientos Judiciales con carácter previo a su primera utilización ante los órganos judiciales [BOE-A-2027-05904]."
+        },
+        {
+          "score": 0.28571428571428575,
+          "rouge_l": 0.2857,
+          "contains": false,
+          "prediction": "Los poderes de representación procesal deberán inscribirse en el Registro Electrónico de Apociamientos Judiciales con carácter previo a su primera utilización ante los órganos judiciales [BOE-A-2027-05904]."
+        }
+      ]
+    },
+    {
+      "id": "eb-138-ayudas-bic",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.7143,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.7143,
+          "contains": true,
+          "prediction": "La ayuda podrá alcanzar hasta el setenta por ciento del coste de la intervención [BOE-A-2027-06045]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.7143,
+          "contains": true,
+          "prediction": "La ayuda podrá alcanzar hasta el setenta por ciento del coste de la intervención [BOE-A-2027-06045]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.7143,
+          "contains": true,
+          "prediction": "La ayuda podrá alcanzar hasta el setenta por ciento del coste de la intervención [BOE-A-2027-06045]."
+        }
+      ]
+    },
+    {
+      "id": "eb-139-becas-inaem",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.4167,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.4167,
+          "contains": true,
+          "prediction": "Las solicitudes se presentarán a través de la sede electrónica hasta el 15 de octubre de 2027 [BOE-A-2027-08624]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4167,
+          "contains": true,
+          "prediction": "Las solicitudes se presentarán a través de la sede electrónica hasta el 15 de octubre de 2027 [BOE-A-2027-08624]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4167,
+          "contains": true,
+          "prediction": "Las solicitudes se presentarán a través de la sede electrónica hasta el 15 de octubre de 2027 [BOE-A-2027-08624]."
+        }
+      ]
+    },
+    {
+      "id": "eb-140-bibliotecas-municipios",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.4242,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.4242,
+          "contains": true,
+          "prediction": "Los municipios de más de cinco mil habitantes deberán prestar el servicio de biblioteca pública, por sí o mediante fórmulas de cooperación intermunicipal [BOE-A-2027-07123]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4242,
+          "contains": true,
+          "prediction": "Los municipios de más de cinco mil habitantes deberán prestar el servicio de biblioteca pública, por sí o mediante fórmulas de cooperación intermunicipal [BOE-A-2027-07123]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4242,
+          "contains": true,
+          "prediction": "Los municipios de más de cinco mil habitantes deberán prestar el servicio de biblioteca pública, por sí o mediante fórmulas de cooperación intermunicipal [BOE-A-2027-07123]."
+        }
+      ]
+    },
+    {
+      "id": "eb-141-delegado-proteccion",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.2174,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.2174,
+          "contains": true,
+          "prediction": "Las entidades deportivas con más de cincuenta licencias de personas menores de edad deberán designar una persona delegada de protección, encargada de difundir los protocolos de prevención y de canalizar las comunicaciones sobre posibles situaciones de violencia [BOE-A-2027-07931]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2174,
+          "contains": true,
+          "prediction": "Las entidades deportivas con más de cincuenta licencias de personas menores de edad deberán designar una persona delegada de protección, encargada de difundir los protocolos de prevención y de canalizar las comunicaciones sobre posibles situaciones de violencia [BOE-A-2027-07931]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2174,
+          "contains": true,
+          "prediction": "Las entidades deportivas con más de cincuenta licencias de personas menores de edad deberán designar una persona delegada de protección, encargada de difundir los protocolos de prevención y de canalizar las comunicaciones sobre posibles situaciones de violencia [BOE-A-2027-07931]."
+        }
+      ]
+    },
+    {
+      "id": "eb-142-tecnificacion-plazo",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.2917,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.2917,
+          "contains": true,
+          "prediction": "Las solicitudes se presentarán en el plazo de veinte días hábiles, a contar desde el día siguiente al de la publicación del extracto de la convocatoria, a través de la sede electrónica del Consejo Superior de Deportes [BOE-A-2027-09812]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2917,
+          "contains": true,
+          "prediction": "Las solicitudes se presentarán en el plazo de veinte días hábiles, a contar desde el día siguiente al de la publicación del extracto de la convocatoria, a través de la sede electrónica del Consejo Superior de Deportes [BOE-A-2027-09812]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2917,
+          "contains": true,
+          "prediction": "Las solicitudes se presentarán en el plazo de veinte días hábiles, a contar desde el día siguiente al de la publicación del extracto de la convocatoria, a través de la sede electrónica del Consejo Superior de Deportes [BOE-A-2027-09812]."
+        }
+      ]
+    },
+    {
+      "id": "eb-143-registro-retributivo",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.2553,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.2553,
+          "contains": true,
+          "prediction": "La ausencia del registro retributivo o su falseamiento constituirá infracción muy grave y podrá sancionarse con multa de hasta 90.000 euros, sin perjuicio de la pérdida de las ayudas y bonificaciones públicas de que disfrute la empresa [BOE-A-2027-10358]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2553,
+          "contains": true,
+          "prediction": "La ausencia del registro retributivo o su falseamiento constituirá infracción muy grave y podrá sancionarse con multa de hasta 90.000 euros, sin perjuicio de la pérdida de las ayudas y bonificaciones públicas de que disfrute la empresa [BOE-A-2027-10358]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2553,
+          "contains": true,
+          "prediction": "La ausencia del registro retributivo o su falseamiento constituirá infracción muy grave y podrá sancionarse con multa de hasta 90.000 euros, sin perjuicio de la pérdida de las ayudas y bonificaciones públicas de que disfrute la empresa [BOE-A-2027-10358]."
+        }
+      ]
+    },
+    {
+      "id": "eb-144-distintivo-silencio",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.2564,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.2564,
+          "contains": true,
+          "prediction": "El plazo máximo para resolver y notificar será de tres meses, desde la presentación de la candidatura; transcurrido dicho plazo sin resolución expresa, la solicitud se entenderá estimada [BOE-A-2027-11473, art. 2]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2564,
+          "contains": true,
+          "prediction": "El plazo máximo para resolver y notificar será de tres meses, desde la presentación de la candidatura; transcurrido dicho plazo sin resolución expresa, la solicitud se entenderá estimada [BOE-A-2027-11473, art. 2]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2564,
+          "contains": true,
+          "prediction": "El plazo máximo para resolver y notificar será de tres meses, desde la presentación de la candidatura; transcurrido dicho plazo sin resolución expresa, la solicitud se entenderá estimada [BOE-A-2027-11473, art. 2]."
+        }
+      ]
+    },
+    {
+      "id": "eb-145-auditoria-industrial",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.7368,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.7368,
+          "contains": true,
+          "prediction": "Las instalaciones industriales con un consumo energético final superior a cuatro gigavatios hora anuales quedan sujetas a este real decreto [BOE-A-2027-03417]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.7368,
+          "contains": true,
+          "prediction": "Las instalaciones industriales con un consumo energético final superior a cuatro gigavatios hora anuales quedan sujetas a este real decreto [BOE-A-2027-03417]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.7368,
+          "contains": true,
+          "prediction": "Las instalaciones industriales con un consumo energético final superior a cuatro gigavatios hora anuales quedan sujetas a este real decreto [BOE-A-2027-03417]."
+        }
+      ]
+    },
+    {
+      "id": "eb-146-declaracion-responsable",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.5333,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.5333,
+          "contains": true,
+          "prediction": "La declaración responsable de puesta en servicio debe acompañarse del certificado de instalación suscrito por un instalador habilitado [BOE-A-2027-12681]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5333,
+          "contains": true,
+          "prediction": "La declaración responsable de puesta en servicio debe acompañarse del certificado de instalación suscrito por un instalador habilitado [BOE-A-2027-12681]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5333,
+          "contains": true,
+          "prediction": "La declaración responsable de puesta en servicio debe acompañarse del certificado de instalación suscrito por un instalador habilitado [BOE-A-2027-12681]."
+        }
+      ]
+    },
+    {
+      "id": "eb-147-organo-exportacion",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.3158,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.3158,
+          "contains": true,
+          "prediction": "La tramitación y la resolución de las autorizaciones de exportación corresponderán a la Secretaría de Estado de Comercio, previo informe de la junta interministerial competente en la materia [BOE-A-2027-05286]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.3158,
+          "contains": true,
+          "prediction": "La tramitación y la resolución de las autorizaciones de exportación corresponderán a la Secretaría de Estado de Comercio, previo informe de la junta interministerial competente en la materia [BOE-A-2027-05286]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.3158,
+          "contains": true,
+          "prediction": "La tramitación y la resolución de las autorizaciones de exportación corresponderán a la Secretaría de Estado de Comercio, previo informe de la junta interministerial competente en la materia [BOE-A-2027-05286]."
+        }
+      ]
+    },
+    {
+      "id": "eb-148-licencia-validez",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.5517,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.5517,
+          "contains": true,
+          "prediction": "La licencia de importación tendrá una validez de dieciocho meses desde su expedición y no será transferible [BOE-A-2027-13540]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5517,
+          "contains": true,
+          "prediction": "La licencia de importación tendrá una validez de dieciocho meses desde su expedición y no será transferible [BOE-A-2027-13540]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5517,
+          "contains": true,
+          "prediction": "La licencia de importación tendrá una validez de dieciocho meses desde su expedición y no será transferible [BOE-A-2027-13540]."
+        }
+      ]
+    },
+    {
+      "id": "eb-149-intensidad-ayuda",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.3902,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.3902,
+          "contains": true,
+          "prediction": "La ayuda podrá alcanzar el cincuenta por ciento de los costes subvencionables en los proyectos de investigación industrial y el veinticinco por ciento en los proyectos de desarrollo experimental [BOE-A-2027-03118]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.3902,
+          "contains": true,
+          "prediction": "La ayuda podrá alcanzar el cincuenta por ciento de los costes subvencionables en los proyectos de investigación industrial y el veinticinco por ciento en los proyectos de desarrollo experimental [BOE-A-2027-03118]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.3902,
+          "contains": true,
+          "prediction": "La ayuda podrá alcanzar el cincuenta por ciento de los costes subvencionables en los proyectos de investigación industrial y el veinticinco por ciento en los proyectos de desarrollo experimental [BOE-A-2027-03118]."
+        }
+      ]
+    },
+    {
+      "id": "eb-150-anticipo-garantia",
+      "task_type": "qa",
+      "score": 0.5238095238095238,
+      "rouge_l": 0.5238,
+      "contains": false,
+      "score_min": 0.5238095238095238,
+      "score_max": 0.5238095238095238,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.5238095238095238,
+          "rouge_l": 0.5238,
+          "contains": false,
+          "prediction": "Tras la resolución de concesión podrá abonarse un anticipo de hasta el sesenta por cento de la ayuda concedida, sin necesidad de constituir garantía [BOE-A-2027-04562, art. 6]."
+        },
+        {
+          "score": 0.5238095238095238,
+          "rouge_l": 0.5238,
+          "contains": false,
+          "prediction": "Tras la resolución de concesión podrá abonarse un anticipo de hasta el sesenta por cento de la ayuda concedida, sin necesidad de constituir garantía [BOE-A-2027-04562, art. 6]."
+        },
+        {
+          "score": 0.5238095238095238,
+          "rouge_l": 0.5238,
+          "contains": false,
+          "prediction": "Tras la resolución de concesión podrá abonarse un anticipo de hasta el sesenta por cento de la ayuda concedida, sin necesidad de constituir garantía [BOE-A-2027-04562, art. 6]."
+        }
+      ]
+    },
+    {
+      "id": "eb-151-fecha-solicitudes",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.4737,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.4737,
+          "contains": true,
+          "prediction": "Las solicitudes podrán presentarse hasta el 14 de mayo de 2027 a las 14:00 horas, hora peninsular, exclusivamente a través de la sede electrónica del órgano convocante [BOE-A-2027-05237]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4737,
+          "contains": true,
+          "prediction": "Las solicitudes podrán presentarse hasta el 14 de mayo de 2027 a las 14:00 horas, hora peninsular, exclusivamente a través de la sede electrónica del órgano convocante [BOE-A-2027-05237]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4737,
+          "contains": true,
+          "prediction": "Las solicitudes podrán presentarse hasta el 14 de mayo de 2027 a las 14:00 horas, hora peninsular, exclusivamente a través de la sede electrónica del órgano convocante [BOE-A-2027-05237]."
+        }
+      ]
+    },
+    {
+      "id": "eb-152-informe-auditoria",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.5625,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.5625,
+          "contains": true,
+          "prediction": "El informe de auditoría se remitirá a la autoridad competente en el plazo de un mes desde su emisión [BOE-A-2027-06471]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5625,
+          "contains": true,
+          "prediction": "El informe de auditoría se remitirá a la autoridad competente en el plazo de un mes desde su emisión [BOE-A-2027-06471]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5625,
+          "contains": true,
+          "prediction": "El informe de auditoría se remitirá a la autoridad competente en el plazo de un mes desde su emisión [BOE-A-2027-06471]."
+        }
+      ]
+    },
+    {
+      "id": "eb-153-vulnerabilidades-criticas",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.5405,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.5405,
+          "contains": true,
+          "prediction": "Las vulnerabilidades de severidad crítica se comunicarán a la Agencia Estatal de Ciberseguridad en un plazo máximo de cuarenta y ocho horas desde su detección [BOE-A-2027-07845]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5405,
+          "contains": true,
+          "prediction": "Las vulnerabilidades de severidad crítica se comunicarán a la Agencia Estatal de Ciberseguridad en un plazo máximo de cuarenta y ocho horas desde su detección [BOE-A-2027-07845]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5405,
+          "contains": true,
+          "prediction": "Las vulnerabilidades de severidad crítica se comunicarán a la Agencia Estatal de Ciberseguridad en un plazo máximo de cuarenta y ocho horas desde su detección [BOE-A-2027-07845]."
+        }
+      ]
+    },
+    {
+      "id": "eb-154-bolsa-horas",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.5185,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.5185,
+          "contains": true,
+          "prediction": "El personal funcionario podrá disponer de una bolsa de horas de hasta el cinco por ciento de la jornada anual para el cuidado de hijos e hijas menores de doce años o de personas mayores dependientes [BOE-A-2027-08903]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5185,
+          "contains": true,
+          "prediction": "El personal funcionario podrá disponer de una bolsa de horas de hasta el cinco por ciento de la jornada anual para el cuidado de hijos e hijas menores de doce años o de personas mayores dependientes [BOE-A-2027-08903]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5185,
+          "contains": true,
+          "prediction": "El personal funcionario podrá disponer de una bolsa de horas de hasta el cinco por ciento de la jornada anual para el cuidado de hijos e hijas menores de doce años o de personas mayores dependientes [BOE-A-2027-08903]."
+        }
+      ]
+    },
+    {
+      "id": "eb-155-permanencia-concurso",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.303,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.303,
+          "contains": true,
+          "prediction": "Quienes obtengan destino mediante concurso deberán permanecer en el puesto adjudicado un mínimo de dos años para poder participar en nuevos concursos de provisión [BOE-A-2027-09614]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.303,
+          "contains": true,
+          "prediction": "Quienes obtengan destino mediante concurso deberán permanecer en el puesto adjudicado un mínimo de dos años para poder participar en nuevos concursos de provisión [BOE-A-2027-09614]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.303,
+          "contains": true,
+          "prediction": "Quienes obtengan destino mediante concurso deberán permanecer en el puesto adjudicado un mínimo de dos años para poder participar en nuevos concursos de provisión [BOE-A-2027-09614]."
+        }
+      ]
+    },
+    {
+      "id": "eb-156-cuota-tasa",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.4545,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.4545,
+          "contains": true,
+          "prediction": "La cuota fija de la tasa será de 87,50 euros por certificado expedido [BOE-A-2027-10358]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4545,
+          "contains": true,
+          "prediction": "La cuota fija de la tasa será de 87,50 euros por certificado expedido [BOE-A-2027-10358]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4545,
+          "contains": true,
+          "prediction": "La cuota fija de la tasa será de 87,50 euros por certificado expedido [BOE-A-2027-10358]."
+        }
+      ]
+    },
+    {
+      "id": "eb-157-bonificacion-entidades",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.5556,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.5556,
+          "contains": true,
+          "prediction": "Las entidades sin fines lucrativos inscritas en el registro correspondiente gozarán de una bonificación del setenta por ciento de la cuota íntegra [BOE-A-2027-11026]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5556,
+          "contains": true,
+          "prediction": "Las entidades sin fines lucrativos inscritas en el registro correspondiente gozarán de una bonificación del setenta por ciento de la cuota íntegra [BOE-A-2027-11026]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.5556,
+          "contains": true,
+          "prediction": "Las entidades sin fines lucrativos inscritas en el registro correspondiente gozarán de una bonificación del setenta por ciento de la cuota íntegra [BOE-A-2027-11026]."
+        }
+      ]
+    },
+    {
+      "id": "eb-158-autoliquidacion-trimestral",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.7442,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.7442,
+          "contains": true,
+          "prediction": "Los sujetos pasivos presentarán la autoliquidación trimestral dentro de los veinte primeros días naturales de los meses de abril, julio, octubre y enero [BOE-A-2027-12489]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.7442,
+          "contains": true,
+          "prediction": "Los sujetos pasivos presentarán la autoliquidación trimestral dentro de los veinte primeros días naturales de los meses de abril, julio, octubre y enero [BOE-A-2027-12489]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.7442,
+          "contains": true,
+          "prediction": "Los sujetos pasivos presentarán la autoliquidación trimestral dentro de los veinte primeros días naturales de los meses de abril, julio, octubre y enero [BOE-A-2027-12489]."
+        }
+      ]
+    },
+    {
+      "id": "eb-159-silencio-licencia",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.2,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.2,
+          "contains": true,
+          "prediction": "El plazo máximo para resolver y notificar las licencias de obra mayor será de dos meses; transcurrido dicho plazo sin resolución expresa, la solicitud se entenderá estimada, salvo que la actuación afecte al dominio público o al patrimonio histórico [BOE-A-2027-13752, art. 4]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2,
+          "contains": true,
+          "prediction": "El plazo máximo para resolver y notificar las licencias de obra mayor será de dos meses; transcurrido dicho plazo sin resolución expresa, la solicitud se entenderá estimada, salvo que la actuación afecte al dominio público o al patrimonio histórico [BOE-A-2027-13752, art. 4]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2,
+          "contains": true,
+          "prediction": "El plazo máximo para resolver y notificar las licencias de obra mayor será de dos meses; transcurrido dicho plazo sin resolución expresa, la solicitud se entenderá estimada, salvo que la actuación afecte al dominio público o al patrimonio histórico [BOE-A-2027-13752, art. 4]."
+        }
+      ]
+    },
+    {
+      "id": "eb-160-reserva-vivienda",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.4444,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.4444,
+          "contains": true,
+          "prediction": "Los nuevos desarrollos residenciales reservarán como mínimo el cuarenta por ciento de la edificabilidad residencial para vivienda sometida a algún régigo de protección pública [BOE-A-2027-14201]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4444,
+          "contains": true,
+          "prediction": "Los nuevos desarrollos residenciales reservarán como mínimo el cuarenta por ciento de la edificabilidad residencial para vivienda sometida a algún régigo de protección pública [BOE-A-2027-14201]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.4444,
+          "contains": true,
+          "prediction": "Los nuevos desarrollos residenciales reservarán como mínimo el cuarenta por ciento de la edificabilidad residencial para vivienda sometida a algún régigo de protección pública [BOE-A-2027-14201]."
+        }
+      ]
+    },
+    {
+      "id": "eb-161-informe-calidad",
+      "task_type": "qa",
+      "score": 0.12121212121212123,
+      "rouge_l": 0.1212,
+      "contains": false,
+      "score_min": 0.12121212121212123,
+      "score_max": 0.12121212121212123,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.12121212121212123,
+          "rouge_l": 0.1212,
+          "contains": false,
+          "prediction": "Los titulares de las concesiones de reutilización remitirán al organismo de cuenca un informe anual de calidad de las agu. [BOE-A-2027-15678, art. 5]"
+        },
+        {
+          "score": 0.12121212121212123,
+          "rouge_l": 0.1212,
+          "contains": false,
+          "prediction": "Los titulares de las concesiones de reutilización remitirán al organismo de cuenca un informe anual de calidad de las agu. [BOE-A-2027-15678, art. 5]"
+        },
+        {
+          "score": 0.12121212121212123,
+          "rouge_l": 0.1212,
+          "contains": false,
+          "prediction": "Los titulares de las concesiones de reutilización remitirán al organismo de cuenca un informe anual de calidad de las agu. [BOE-A-2027-15678, art. 5]"
+        }
+      ]
+    },
+    {
+      "id": "eb-162-riego-prealerta",
+      "task_type": "qa",
+      "score": 1.0,
+      "rouge_l": 0.2703,
+      "contains": true,
+      "score_min": 1.0,
+      "score_max": 1.0,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 1.0,
+          "rouge_l": 0.2703,
+          "contains": true,
+          "prediction": "En situación de prealerta, el riego de zonas verdes ornamentales se limitará a dos días por semana y quedará prohibido el llenado de piscinas privadas de nueva construcción [BOE-A-2027-16934]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2703,
+          "contains": true,
+          "prediction": "En situación de prealerta, el riego de zonas verdes ornamentales se limitará a dos días por semana y quedará prohibido el llenado de piscinas privadas de nueva construcción [BOE-A-2027-16934]."
+        },
+        {
+          "score": 1.0,
+          "rouge_l": 0.2703,
+          "contains": true,
+          "prediction": "En situación de prealerta, el riego de zonas verdes ornamentales se limitará a dos días por semana y quedará prohibido el llenado de piscinas privadas de nueva construcción [BOE-A-2027-16934]."
+        }
+      ]
+    },
+    {
+      "id": "eb-163-resumen-ia-laboral",
+      "task_type": "resumen",
+      "score": 0.8042328042328042,
+      "rouge_l": 0.8042,
+      "score_min": 0.8042328042328042,
+      "score_max": 0.8042328042328042,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.8042328042328042,
+          "rouge_l": 0.8042,
+          "prediction": "La Ley 7/2027 regula lo siguiente: Esta ley tiene por objeto garantizar la transparencia en el uso de sistemas de inteligencia artificial que adopten decisiones con efectos sobre las condiciones de trabajo. Las empresas que empleen sistemas de inteligencia artificial en la selección de personal, la asignación de tareas o la evaluación del desempeño deberán informar por escrito a la representación legal de las personas trabajadoras de los parámetros y de la lógica de funcionamiento de dichos sistemas. El incumplimiento constituirá infracción grave, sancionable con multa de hasta 6.250 euros."
+        },
+        {
+          "score": 0.8042328042328042,
+          "rouge_l": 0.8042,
+          "prediction": "La Ley 7/2027 regula lo siguiente: Esta ley tiene por objeto garantizar la transparencia en el uso de sistemas de inteligencia artificial que adopten decisiones con efectos sobre las condiciones de trabajo. Las empresas que empleen sistemas de inteligencia artificial en la selección de personal, la asignación de tareas o la evaluación del desempeño deberán informar por escrito a la representación legal de las personas trabajadoras de los parámetros y de la lógica de funcionamiento de dichos sistemas. El incumplimiento constituirá infracción grave, sancionable con multa de hasta 6.250 euros."
+        },
+        {
+          "score": 0.8042328042328042,
+          "rouge_l": 0.8042,
+          "prediction": "La Ley 7/2027 regula lo siguiente: Esta ley tiene por objeto garantizar la transparencia en el uso de sistemas de inteligencia artificial que adopten decisiones con efectos sobre las condiciones de trabajo. Las empresas que empleen sistemas de inteligencia artificial en la selección de personal, la asignación de tareas o la evaluación del desempeño deberán informar por escrito a la representación legal de las personas trabajadoras de los parámetros y de la lógica de funcionamiento de dichos sistemas. El incumplimiento constituirá infracción grave, sancionable con multa de hasta 6.250 euros."
+        }
+      ]
+    },
+    {
+      "id": "eb-164-resumen-distintivo-ia",
+      "task_type": "resumen",
+      "score": 0.900523560209424,
+      "rouge_l": 0.9005,
+      "score_min": 0.9005235602094241,
+      "score_max": 0.9005235602094241,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.9005235602094241,
+          "rouge_l": 0.9005,
+          "prediction": "La Orden TDF/144/2027 regula lo siguiente: Se crea el distintivo de inteligencia artificial responsable, que reconoce a las empresas que emplean sistemas de inteligencia artificial conforme a criterios de transparencia, supervisión humana y minimización de datos. Las empresas interesadas presentarán su solicitud a través de la sede electrónica, acompañada de una autoevaluación de sus sistemas. El distintivo tendrá una vigencia de tres años y podrá renovarse por periodos sucesivos de igual duración. El distintivo se revocará cuando se constate el incumplimiento sobrevenido de los criterios de concesión, previa audiencia de la empresa por plazo de quince días."
+        },
+        {
+          "score": 0.9005235602094241,
+          "rouge_l": 0.9005,
+          "prediction": "La Orden TDF/144/2027 regula lo siguiente: Se crea el distintivo de inteligencia artificial responsable, que reconoce a las empresas que emplean sistemas de inteligencia artificial conforme a criterios de transparencia, supervisión humana y minimización de datos. Las empresas interesadas presentarán su solicitud a través de la sede electrónica, acompañada de una autoevaluación de sus sistemas. El distintivo tendrá una vigencia de tres años y podrá renovarse por periodos sucesivos de igual duración. El distintivo se revocará cuando se constate el incumplimiento sobrevenido de los criterios de concesión, previa audiencia de la empresa por plazo de quince días."
+        },
+        {
+          "score": 0.9005235602094241,
+          "rouge_l": 0.9005,
+          "prediction": "La Orden TDF/144/2027 regula lo siguiente: Se crea el distintivo de inteligencia artificial responsable, que reconoce a las empresas que emplean sistemas de inteligencia artificial conforme a criterios de transparencia, supervisión humana y minimización de datos. Las empresas interesadas presentarán su solicitud a través de la sede electrónica, acompañada de una autoevaluación de sus sistemas. El distintivo tendrá una vigencia de tres años y podrá renovarse por periodos sucesivos de igual duración. El distintivo se revocará cuando se constate el incumplimiento sobrevenido de los criterios de concesión, previa audiencia de la empresa por plazo de quince días."
+        }
+      ]
+    },
+    {
+      "id": "eb-165-resumen-accesibilidad-web",
+      "task_type": "resumen",
+      "score": 0.891566265060241,
+      "rouge_l": 0.8916,
+      "score_min": 0.891566265060241,
+      "score_max": 0.891566265060241,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.891566265060241,
+          "rouge_l": 0.8916,
+          "prediction": "El Real Decreto 187/2027 regula lo siguiente: Establecer los requisitos de accesibilidad universal de los sitios web y de las aplicaciones para dispositivos móviles de las empresas con más de doscientas cincuenta personas en plantilla. Los sitios web y las aplicaciones deberán ser perceptibles, operables, comprensibles y robustos, y contarán con una declaración de accesibilidad actualizada como mínimo una vez al año. Las empresas obligadas adaptarán sus sitios web y aplicaciones antes del 1 de julio de 2028. El incumplimiento podrá sancionarse con multa de hasta 30.000 euros."
+        },
+        {
+          "score": 0.891566265060241,
+          "rouge_l": 0.8916,
+          "prediction": "El Real Decreto 187/2027 regula lo siguiente: Establecer los requisitos de accesibilidad universal de los sitios web y de las aplicaciones para dispositivos móviles de las empresas con más de doscientas cincuenta personas en plantilla. Los sitios web y las aplicaciones deberán ser perceptibles, operables, comprensibles y robustos, y contarán con una declaración de accesibilidad actualizada como mínimo una vez al año. Las empresas obligadas adaptarán sus sitios web y aplicaciones antes del 1 de julio de 2028. El incumplimiento podrá sancionarse con multa de hasta 30.000 euros."
+        },
+        {
+          "score": 0.891566265060241,
+          "rouge_l": 0.8916,
+          "prediction": "El Real Decreto 187/2027 regula lo siguiente: Establecer los requisitos de accesibilidad universal de los sitios web y de las aplicaciones para dispositivos móviles de las empresas con más de doscientas cincuenta personas en plantilla. Los sitios web y las aplicaciones deberán ser perceptibles, operables, comprensibles y robustos, y contarán con una declaración de accesibilidad actualizada como mínimo una vez al año. Las empresas obligadas adaptarán sus sitios web y aplicaciones antes del 1 de julio de 2028. El incumplimiento podrá sancionarse con multa de hasta 30.000 euros."
+        }
+      ]
+    },
+    {
+      "id": "eb-166-resumen-barreras-comercio",
+      "task_type": "resumen",
+      "score": 0.619718309859155,
+      "rouge_l": 0.6197,
+      "score_min": 0.619718309859155,
+      "score_max": 0.619718309859155,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.619718309859155,
+          "rouge_l": 0.6197,
+          "prediction": "La Resolución de 14 de abril de 2027 regula lo siguiente: Convocar ayudas destinadas a la supresión de barreras físicas, sensoriales y cognitivas en establecimientos comerciales abiertos al público. La ayuda cubrirá hasta el ochenta por ciento del coste de las actuaciones, con un límite de seis mil euros por establecimiento. Los plazos principales son dos meses; cuatro meses."
+        },
+        {
+          "score": 0.619718309859155,
+          "rouge_l": 0.6197,
+          "prediction": "La Resolución de 14 de abril de 2027 regula lo siguiente: Convocar ayudas destinadas a la supresión de barreras físicas, sensoriales y cognitivas en establecimientos comerciales abiertos al público. La ayuda cubrirá hasta el ochenta por ciento del coste de las actuaciones, con un límite de seis mil euros por establecimiento. Los plazos principales son dos meses; cuatro meses."
+        },
+        {
+          "score": 0.619718309859155,
+          "rouge_l": 0.6197,
+          "prediction": "La Resolución de 14 de abril de 2027 regula lo siguiente: Convocar ayudas destinadas a la supresión de barreras físicas, sensoriales y cognitivas en establecimientos comerciales abiertos al público. La ayuda cubrirá hasta el ochenta por ciento del coste de las actuaciones, con un límite de seis mil euros por establecimiento. Los plazos principales son dos meses; cuatro meses."
+        }
+      ]
+    },
+    {
+      "id": "eb-167-resumen-voluntariado-joven",
+      "task_type": "resumen",
+      "score": 0.9,
+      "rouge_l": 0.9,
+      "score_min": 0.9,
+      "score_max": 0.9,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.9,
+          "rouge_l": 0.9,
+          "prediction": "La Ley 15/2027 regula lo siguiente: Esta ley tiene por objeto fomentar la participación de las personas jóvenes de entre dieciséis y treinta años en programas de voluntariado y garantizar sus derechos durante la actividad. Las entidades de voluntariado deberán suscribir un seguro de accidentes y de responsabilidad civil por cada persona voluntaria y reembolsar los gastos ocasionados por la actividad. Las competencias adquiridas se acreditarán mediante un certificado oficial expedido en el plazo máximo de un mes desde la finalización del programa."
+        },
+        {
+          "score": 0.9,
+          "rouge_l": 0.9,
+          "prediction": "La Ley 15/2027 regula lo siguiente: Esta ley tiene por objeto fomentar la participación de las personas jóvenes de entre dieciséis y treinta años en programas de voluntariado y garantizar sus derechos durante la actividad. Las entidades de voluntariado deberán suscribir un seguro de accidentes y de responsabilidad civil por cada persona voluntaria y reembolsar los gastos ocasionados por la actividad. Las competencias adquiridas se acreditarán mediante un certificado oficial expedido en el plazo máximo de un mes desde la finalización del programa."
+        },
+        {
+          "score": 0.9,
+          "rouge_l": 0.9,
+          "prediction": "La Ley 15/2027 regula lo siguiente: Esta ley tiene por objeto fomentar la participación de las personas jóvenes de entre dieciséis y treinta años en programas de voluntariado y garantizar sus derechos durante la actividad. Las entidades de voluntariado deberán suscribir un seguro de accidentes y de responsabilidad civil por cada persona voluntaria y reembolsar los gastos ocasionados por la actividad. Las competencias adquiridas se acreditarán mediante un certificado oficial expedido en el plazo máximo de un mes desde la finalización del programa."
+        }
+      ]
+    },
+    {
+      "id": "eb-168-resumen-registro-voluntariado",
+      "task_type": "resumen",
+      "score": 0.42748091603053434,
+      "rouge_l": 0.4275,
+      "score_min": 0.4274809160305343,
+      "score_max": 0.4274809160305343,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.4274809160305343,
+          "rouge_l": 0.4275,
+          "prediction": "La Orden DSA/2027 regula lo siguiente: Crear y regular el Registro Estatal de Entidades de Voluntariado, de inscripción obligatoria para las entidades que desarrollen programas en más de una comunidad autónoma. Los plazos principales son tres meses."
+        },
+        {
+          "score": 0.4274809160305343,
+          "rouge_l": 0.4275,
+          "prediction": "La Orden DSA/2027 regula lo siguiente: Crear y regular el Registro Estatal de Entidades de Voluntariado, de inscripción obligatoria para las entidades que desarrollen programas en más de una comunidad autónoma. Los plazos principales son tres meses."
+        },
+        {
+          "score": 0.4274809160305343,
+          "rouge_l": 0.4275,
+          "prediction": "La Orden DSA/2027 regula lo siguiente: Crear y regular el Registro Estatal de Entidades de Voluntariado, de inscripción obligatoria para las entidades que desarrollen programas en más de una comunidad autónoma. Los plazos principales son tres meses."
+        }
+      ]
+    },
+    {
+      "id": "eb-169-resumen-cooperativas",
+      "task_type": "resumen",
+      "score": 0.8930817610062892,
+      "rouge_l": 0.8931,
+      "score_min": 0.8930817610062893,
+      "score_max": 0.8930817610062893,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.8930817610062893,
+          "rouge_l": 0.8931,
+          "prediction": "La Ley 21/2027 regula lo siguiente: Esta ley tiene por objeto simplificar la constitución de sociedades cooperativas y fomentar su creación como fórmula de emprendimiento colectivo. Las cooperativas de trabajo asociado podrán constituirse con un mínimo de dos personas socias y un capital social no inferior a 1.500 euros, íntegramente desembolsado en el momento de la constitución. El registro de cooperativas resolverá la inscripción en el plazo de diez días hábiles; transcurrido este plazo sin resolución expresa, la inscripción se entenderá estimada."
+        },
+        {
+          "score": 0.8930817610062893,
+          "rouge_l": 0.8931,
+          "prediction": "La Ley 21/2027 regula lo siguiente: Esta ley tiene por objeto simplificar la constitución de sociedades cooperativas y fomentar su creación como fórmula de emprendimiento colectivo. Las cooperativas de trabajo asociado podrán constituirse con un mínimo de dos personas socias y un capital social no inferior a 1.500 euros, íntegramente desembolsado en el momento de la constitución. El registro de cooperativas resolverá la inscripción en el plazo de diez días hábiles; transcurrido este plazo sin resolución expresa, la inscripción se entenderá estimada."
+        },
+        {
+          "score": 0.8930817610062893,
+          "rouge_l": 0.8931,
+          "prediction": "La Ley 21/2027 regula lo siguiente: Esta ley tiene por objeto simplificar la constitución de sociedades cooperativas y fomentar su creación como fórmula de emprendimiento colectivo. Las cooperativas de trabajo asociado podrán constituirse con un mínimo de dos personas socias y un capital social no inferior a 1.500 euros, íntegramente desembolsado en el momento de la constitución. El registro de cooperativas resolverá la inscripción en el plazo de diez días hábiles; transcurrido este plazo sin resolución expresa, la inscripción se entenderá estimada."
+        }
+      ]
+    },
+    {
+      "id": "eb-170-resumen-coop-agro",
+      "task_type": "resumen",
+      "score": 0.9249999999999999,
+      "rouge_l": 0.925,
+      "score_min": 0.9249999999999999,
+      "score_max": 0.9249999999999999,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.9249999999999999,
+          "rouge_l": 0.925,
+          "prediction": "El Real Decreto 456/2027 regula lo siguiente: Regular la concesión de ayudas a las cooperativas agroalimentarias que incorporen como socias a personas menores de cuarenta y un años. La ayuda será de 5.000 euros por cada persona incorporada, con un máximo de veinte incorporaciones subvencionables por cooperativa y año. Las cooperativas beneficiarias justificarán la permanencia de las personas incorporadas durante un periodo mínimo de dos años; la justificación se presentará en el plazo de tres meses desde el fin de dicho periodo."
+        },
+        {
+          "score": 0.9249999999999999,
+          "rouge_l": 0.925,
+          "prediction": "El Real Decreto 456/2027 regula lo siguiente: Regular la concesión de ayudas a las cooperativas agroalimentarias que incorporen como socias a personas menores de cuarenta y un años. La ayuda será de 5.000 euros por cada persona incorporada, con un máximo de veinte incorporaciones subvencionables por cooperativa y año. Las cooperativas beneficiarias justificarán la permanencia de las personas incorporadas durante un periodo mínimo de dos años; la justificación se presentará en el plazo de tres meses desde el fin de dicho periodo."
+        },
+        {
+          "score": 0.9249999999999999,
+          "rouge_l": 0.925,
+          "prediction": "El Real Decreto 456/2027 regula lo siguiente: Regular la concesión de ayudas a las cooperativas agroalimentarias que incorporen como socias a personas menores de cuarenta y un años. La ayuda será de 5.000 euros por cada persona incorporada, con un máximo de veinte incorporaciones subvencionables por cooperativa y año. Las cooperativas beneficiarias justificarán la permanencia de las personas incorporadas durante un periodo mínimo de dos años; la justificación se presentará en el plazo de tres meses desde el fin de dicho periodo."
+        }
+      ]
+    },
+    {
+      "id": "eb-171-resumen-vmp",
+      "task_type": "resumen",
+      "score": 0.8450704225352114,
+      "rouge_l": 0.8451,
+      "score_min": 0.8450704225352113,
+      "score_max": 0.8450704225352113,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.8450704225352113,
+          "rouge_l": 0.8451,
+          "prediction": "La Ley 24/2027 regula lo siguiente: Esta ley establece las condiciones de circulación de los vehículos de movilidad personal en las vías urbanas. Las personas conductoras deberán haber cumplido dieciséis años, utilizar casco de protección homologado y no superar la velocidad de veinticinco kilómetros por hora. Será obligatorio disponer de un seguro de responsabilidad civil. El incumplimiento de estas obligaciones se sancionará con multa de 200 euros."
+        },
+        {
+          "score": 0.8450704225352113,
+          "rouge_l": 0.8451,
+          "prediction": "La Ley 24/2027 regula lo siguiente: Esta ley establece las condiciones de circulación de los vehículos de movilidad personal en las vías urbanas. Las personas conductoras deberán haber cumplido dieciséis años, utilizar casco de protección homologado y no superar la velocidad de veinticinco kilómetros por hora. Será obligatorio disponer de un seguro de responsabilidad civil. El incumplimiento de estas obligaciones se sancionará con multa de 200 euros."
+        },
+        {
+          "score": 0.8450704225352113,
+          "rouge_l": 0.8451,
+          "prediction": "La Ley 24/2027 regula lo siguiente: Esta ley establece las condiciones de circulación de los vehículos de movilidad personal en las vías urbanas. Las personas conductoras deberán haber cumplido dieciséis años, utilizar casco de protección homologado y no superar la velocidad de veinticinco kilómetros por hora. Será obligatorio disponer de un seguro de responsabilidad civil. El incumplimiento de estas obligaciones se sancionará con multa de 200 euros."
+        }
+      ]
+    },
+    {
+      "id": "eb-172-resumen-alcolock",
+      "task_type": "resumen",
+      "score": 0.9182389937106917,
+      "rouge_l": 0.9182,
+      "score_min": 0.9182389937106918,
+      "score_max": 0.9182389937106918,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.9182389937106918,
+          "rouge_l": 0.9182,
+          "prediction": "La Orden INT/389/2027 regula lo siguiente: Regular la instalación obligatoria de dispositivos de bloqueo del arranque por alcoholemia en los vehículos dedicados al transporte escolar y de menores. Los vehículos matriculados a partir del 1 de enero de 2028 incorporarán el dispositivo de fábrica; los ya matriculados deberán instalarlo antes del 1 de septiembre de 2028. Los dispositivos se calibrarán una vez al año en talleres autorizados. Circular sin el dispositivo operativo constituirá infracción muy grave, sancionable con multa de 1.000 euros."
+        },
+        {
+          "score": 0.9182389937106918,
+          "rouge_l": 0.9182,
+          "prediction": "La Orden INT/389/2027 regula lo siguiente: Regular la instalación obligatoria de dispositivos de bloqueo del arranque por alcoholemia en los vehículos dedicados al transporte escolar y de menores. Los vehículos matriculados a partir del 1 de enero de 2028 incorporarán el dispositivo de fábrica; los ya matriculados deberán instalarlo antes del 1 de septiembre de 2028. Los dispositivos se calibrarán una vez al año en talleres autorizados. Circular sin el dispositivo operativo constituirá infracción muy grave, sancionable con multa de 1.000 euros."
+        },
+        {
+          "score": 0.9182389937106918,
+          "rouge_l": 0.9182,
+          "prediction": "La Orden INT/389/2027 regula lo siguiente: Regular la instalación obligatoria de dispositivos de bloqueo del arranque por alcoholemia en los vehículos dedicados al transporte escolar y de menores. Los vehículos matriculados a partir del 1 de enero de 2028 incorporarán el dispositivo de fábrica; los ya matriculados deberán instalarlo antes del 1 de septiembre de 2028. Los dispositivos se calibrarán una vez al año en talleres autorizados. Circular sin el dispositivo operativo constituirá infracción muy grave, sancionable con multa de 1.000 euros."
+        }
+      ]
+    },
+    {
+      "id": "eb-173-resumen-alumbrado",
+      "task_type": "resumen",
+      "score": 0.4466019417475728,
+      "rouge_l": 0.4466,
+      "score_min": 0.4466019417475728,
+      "score_max": 0.4466019417475728,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.4466019417475728,
+          "rouge_l": 0.4466,
+          "prediction": "El Real Decreto 601/2027 regula lo siguiente: Establecer los requisitos de eficiencia energética de las instalaciones de alumbrado público exterior de titularidad municipal. Los plazos principales son seis meses."
+        },
+        {
+          "score": 0.4466019417475728,
+          "rouge_l": 0.4466,
+          "prediction": "El Real Decreto 601/2027 regula lo siguiente: Establecer los requisitos de eficiencia energética de las instalaciones de alumbrado público exterior de titularidad municipal. Los plazos principales son seis meses."
+        },
+        {
+          "score": 0.4466019417475728,
+          "rouge_l": 0.4466,
+          "prediction": "El Real Decreto 601/2027 regula lo siguiente: Establecer los requisitos de eficiencia energética de las instalaciones de alumbrado público exterior de titularidad municipal. Los plazos principales son seis meses."
+        }
+      ]
+    },
+    {
+      "id": "eb-174-resumen-rehabilitacion",
+      "task_type": "resumen",
+      "score": 0.9268292682926829,
+      "rouge_l": 0.9268,
+      "score_min": 0.9268292682926829,
+      "score_max": 0.9268292682926829,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.9268292682926829,
+          "rouge_l": 0.9268,
+          "prediction": "La Orden TED/455/2027 regula lo siguiente: Aprobar las bases reguladoras de las ayudas a actuaciones de rehabilitación energética en viviendas construidas antes del año 2007. Las actuaciones deberán lograr una reducción del consumo de energía primaria no renovable de al menos un treinta por ciento, acreditada mediante certificado de eficiencia energética. La ayuda alcanzará hasta el cuarenta por ciento del coste de la actuación, con un máximo de 12.000 euros por vivienda. Las solicitudes podrán presentarse hasta el 30 de junio de 2028."
+        },
+        {
+          "score": 0.9268292682926829,
+          "rouge_l": 0.9268,
+          "prediction": "La Orden TED/455/2027 regula lo siguiente: Aprobar las bases reguladoras de las ayudas a actuaciones de rehabilitación energética en viviendas construidas antes del año 2007. Las actuaciones deberán lograr una reducción del consumo de energía primaria no renovable de al menos un treinta por ciento, acreditada mediante certificado de eficiencia energética. La ayuda alcanzará hasta el cuarenta por ciento del coste de la actuación, con un máximo de 12.000 euros por vivienda. Las solicitudes podrán presentarse hasta el 30 de junio de 2028."
+        },
+        {
+          "score": 0.9268292682926829,
+          "rouge_l": 0.9268,
+          "prediction": "La Orden TED/455/2027 regula lo siguiente: Aprobar las bases reguladoras de las ayudas a actuaciones de rehabilitación energética en viviendas construidas antes del año 2007. Las actuaciones deberán lograr una reducción del consumo de energía primaria no renovable de al menos un treinta por ciento, acreditada mediante certificado de eficiencia energética. La ayuda alcanzará hasta el cuarenta por ciento del coste de la actuación, con un máximo de 12.000 euros por vivienda. Las solicitudes podrán presentarse hasta el 30 de junio de 2028."
+        }
+      ]
+    },
+    {
+      "id": "eb-175-resumen-envases",
+      "task_type": "resumen",
+      "score": 0.8926553672316383,
+      "rouge_l": 0.8927,
+      "score_min": 0.8926553672316383,
+      "score_max": 0.8926553672316383,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.8926553672316383,
+          "rouge_l": 0.8927,
+          "prediction": "La Ley 3/2027 regula lo siguiente: Esta ley tiene por objeto reducir los envases de un solo uso en el comercio minorista y fomentar sistemas de reutilización. Los establecimientos con superficie de venta superior a trescientos metros cuadrados deberán ofrecer envases reutilizables para la venta a granel y aceptar los recipientes aportados por la clientela, y alcanzarán un objetivo del veinte por ciento de ventas en envase reutilizable antes del 31 de diciembre de 2028. El incumplimiento de los objetivos constituirá infracción grave, sancionable con multa de hasta 60.000 euros."
+        },
+        {
+          "score": 0.8926553672316383,
+          "rouge_l": 0.8927,
+          "prediction": "La Ley 3/2027 regula lo siguiente: Esta ley tiene por objeto reducir los envases de un solo uso en el comercio minorista y fomentar sistemas de reutilización. Los establecimientos con superficie de venta superior a trescientos metros cuadrados deberán ofrecer envases reutilizables para la venta a granel y aceptar los recipientes aportados por la clientela, y alcanzarán un objetivo del veinte por ciento de ventas en envase reutilizable antes del 31 de diciembre de 2028. El incumplimiento de los objetivos constituirá infracción grave, sancionable con multa de hasta 60.000 euros."
+        },
+        {
+          "score": 0.8926553672316383,
+          "rouge_l": 0.8927,
+          "prediction": "La Ley 3/2027 regula lo siguiente: Esta ley tiene por objeto reducir los envases de un solo uso en el comercio minorista y fomentar sistemas de reutilización. Los establecimientos con superficie de venta superior a trescientos metros cuadrados deberán ofrecer envases reutilizables para la venta a granel y aceptar los recipientes aportados por la clientela, y alcanzarán un objetivo del veinte por ciento de ventas en envase reutilizable antes del 31 de diciembre de 2028. El incumplimiento de los objetivos constituirá infracción grave, sancionable con multa de hasta 60.000 euros."
+        }
+      ]
+    },
+    {
+      "id": "eb-176-resumen-biorresiduos",
+      "task_type": "resumen",
+      "score": 0.943661971830986,
+      "rouge_l": 0.9437,
+      "score_min": 0.943661971830986,
+      "score_max": 0.943661971830986,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.943661971830986,
+          "rouge_l": 0.9437,
+          "prediction": "El Real Decreto 188/2027 regula lo siguiente: Regular la recogida separada de biorresiduos por parte de los grandes generadores del canal de hostelería y restauración. Los establecimientos que generen más de mil quinientos litros semanales de biorresiduos deberán disponer de contenedores diferenciados y contratar su retirada con gestor autorizado antes del 1 de julio de 2027. Los obligados llevarán un registro de entregas, que conservarán durante tres años a disposición de la autoridad ambiental."
+        },
+        {
+          "score": 0.943661971830986,
+          "rouge_l": 0.9437,
+          "prediction": "El Real Decreto 188/2027 regula lo siguiente: Regular la recogida separada de biorresiduos por parte de los grandes generadores del canal de hostelería y restauración. Los establecimientos que generen más de mil quinientos litros semanales de biorresiduos deberán disponer de contenedores diferenciados y contratar su retirada con gestor autorizado antes del 1 de julio de 2027. Los obligados llevarán un registro de entregas, que conservarán durante tres años a disposición de la autoridad ambiental."
+        },
+        {
+          "score": 0.943661971830986,
+          "rouge_l": 0.9437,
+          "prediction": "El Real Decreto 188/2027 regula lo siguiente: Regular la recogida separada de biorresiduos por parte de los grandes generadores del canal de hostelería y restauración. Los establecimientos que generen más de mil quinientos litros semanales de biorresiduos deberán disponer de contenedores diferenciados y contratar su retirada con gestor autorizado antes del 1 de julio de 2027. Los obligados llevarán un registro de entregas, que conservarán durante tres años a disposición de la autoridad ambiental."
+        }
+      ]
+    },
+    {
+      "id": "eb-177-resumen-emprendimiento-rural",
+      "task_type": "resumen",
+      "score": 0.8571428571428572,
+      "rouge_l": 0.8571,
+      "score_min": 0.8571428571428572,
+      "score_max": 0.8571428571428572,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.8571428571428572,
+          "rouge_l": 0.8571,
+          "prediction": "La Orden APA/97/2027 regula lo siguiente: Podrán ser beneficiarias las personas de edad igual o inferior a cuarenta años que inicien una actividad económica en municipios de menos de cinco mil habitantes. La ayuda consistirá en un pago único de 25.000 euros, ampliable en 5.000 euros adicionales cuando la actividad se desarrolle en municipios de menos de mil habitantes. Las beneficiarias deberán mantener la actividad y la residencia en el municipio durante cinco años."
+        },
+        {
+          "score": 0.8571428571428572,
+          "rouge_l": 0.8571,
+          "prediction": "La Orden APA/97/2027 regula lo siguiente: Podrán ser beneficiarias las personas de edad igual o inferior a cuarenta años que inicien una actividad económica en municipios de menos de cinco mil habitantes. La ayuda consistirá en un pago único de 25.000 euros, ampliable en 5.000 euros adicionales cuando la actividad se desarrolle en municipios de menos de mil habitantes. Las beneficiarias deberán mantener la actividad y la residencia en el municipio durante cinco años."
+        },
+        {
+          "score": 0.8571428571428572,
+          "rouge_l": 0.8571,
+          "prediction": "La Orden APA/97/2027 regula lo siguiente: Podrán ser beneficiarias las personas de edad igual o inferior a cuarenta años que inicien una actividad económica en municipios de menos de cinco mil habitantes. La ayuda consistirá en un pago único de 25.000 euros, ampliable en 5.000 euros adicionales cuando la actividad se desarrolle en municipios de menos de mil habitantes. Las beneficiarias deberán mantener la actividad y la residencia en el municipio durante cinco años."
+        }
+      ]
+    },
+    {
+      "id": "eb-178-resumen-vivienda-rural",
+      "task_type": "resumen",
+      "score": 0.7692307692307692,
+      "rouge_l": 0.7692,
+      "score_min": 0.7692307692307692,
+      "score_max": 0.7692307692307692,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.7692307692307692,
+          "rouge_l": 0.7692,
+          "prediction": "El Real Decreto 412/2027 regula lo siguiente: Regular la concesión de ayudas a la adquisición y rehabilitación de vivienda habitual por personas jóvenes en municipios de menos de diez mil habitantes. La ayuda alcanzará hasta el veinte por ciento del precio de adquisición, con un límite de 10.800 euros por vivienda. Los plazos principales son 15 de noviembre de 2027."
+        },
+        {
+          "score": 0.7692307692307692,
+          "rouge_l": 0.7692,
+          "prediction": "El Real Decreto 412/2027 regula lo siguiente: Regular la concesión de ayudas a la adquisición y rehabilitación de vivienda habitual por personas jóvenes en municipios de menos de diez mil habitantes. La ayuda alcanzará hasta el veinte por ciento del precio de adquisición, con un límite de 10.800 euros por vivienda. Los plazos principales son 15 de noviembre de 2027."
+        },
+        {
+          "score": 0.7692307692307692,
+          "rouge_l": 0.7692,
+          "prediction": "El Real Decreto 412/2027 regula lo siguiente: Regular la concesión de ayudas a la adquisición y rehabilitación de vivienda habitual por personas jóvenes en municipios de menos de diez mil habitantes. La ayuda alcanzará hasta el veinte por ciento del precio de adquisición, con un límite de 10.800 euros por vivienda. Los plazos principales son 15 de noviembre de 2027."
+        }
+      ]
+    },
+    {
+      "id": "eb-179-resumen-mecenazgo",
+      "task_type": "resumen",
+      "score": 0.8496732026143791,
+      "rouge_l": 0.8497,
+      "score_min": 0.8496732026143791,
+      "score_max": 0.8496732026143791,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.8496732026143791,
+          "rouge_l": 0.8497,
+          "prediction": "La Ley 14/2027 regula lo siguiente: Los donativos a entidades beneficiarias darán derecho a una deducción del ochenta por ciento sobre los primeros 250 euros y del cuarenta por ciento sobre el exceso. El porcentaje aplicable al exceso se elevará al cincuenta por ciento cuando se hayan efectuado donativos a la misma entidad en los dos ejercicios anteriores. Las entidades beneficiarias publicarán anualmente una memoria de actividades y el destino de los fondos recibidos."
+        },
+        {
+          "score": 0.8496732026143791,
+          "rouge_l": 0.8497,
+          "prediction": "La Ley 14/2027 regula lo siguiente: Los donativos a entidades beneficiarias darán derecho a una deducción del ochenta por ciento sobre los primeros 250 euros y del cuarenta por ciento sobre el exceso. El porcentaje aplicable al exceso se elevará al cincuenta por ciento cuando se hayan efectuado donativos a la misma entidad en los dos ejercicios anteriores. Las entidades beneficiarias publicarán anualmente una memoria de actividades y el destino de los fondos recibidos."
+        },
+        {
+          "score": 0.8496732026143791,
+          "rouge_l": 0.8497,
+          "prediction": "La Ley 14/2027 regula lo siguiente: Los donativos a entidades beneficiarias darán derecho a una deducción del ochenta por ciento sobre los primeros 250 euros y del cuarenta por ciento sobre el exceso. El porcentaje aplicable al exceso se elevará al cincuenta por ciento cuando se hayan efectuado donativos a la misma entidad en los dos ejercicios anteriores. Las entidades beneficiarias publicarán anualmente una memoria de actividades y el destino de los fondos recibidos."
+        }
+      ]
+    },
+    {
+      "id": "eb-180-resumen-empresa-mecenas",
+      "task_type": "resumen",
+      "score": 0.9019607843137255,
+      "rouge_l": 0.902,
+      "score_min": 0.9019607843137256,
+      "score_max": 0.9019607843137256,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.9019607843137256,
+          "rouge_l": 0.902,
+          "prediction": "La Orden CUL/305/2027 regula lo siguiente: Crear el distintivo Empresa Mecenas de la Cultura para reconocer a las empresas que apoyen proyectos culturales. Podrán solicitarlo las empresas que hayan destinado al menos 30.000 euros anuales a proyectos culturales durante los tres últimos ejercicios. El distintivo tendrá una vigencia de cuatro años y podrá renovarse previa acreditación del mantenimiento de los requisitos. Las solicitudes se presentarán entre el 1 de septiembre y el 31 de octubre de cada año."
+        },
+        {
+          "score": 0.9019607843137256,
+          "rouge_l": 0.902,
+          "prediction": "La Orden CUL/305/2027 regula lo siguiente: Crear el distintivo Empresa Mecenas de la Cultura para reconocer a las empresas que apoyen proyectos culturales. Podrán solicitarlo las empresas que hayan destinado al menos 30.000 euros anuales a proyectos culturales durante los tres últimos ejercicios. El distintivo tendrá una vigencia de cuatro años y podrá renovarse previa acreditación del mantenimiento de los requisitos. Las solicitudes se presentarán entre el 1 de septiembre y el 31 de octubre de cada año."
+        },
+        {
+          "score": 0.9019607843137256,
+          "rouge_l": 0.902,
+          "prediction": "La Orden CUL/305/2027 regula lo siguiente: Crear el distintivo Empresa Mecenas de la Cultura para reconocer a las empresas que apoyen proyectos culturales. Podrán solicitarlo las empresas que hayan destinado al menos 30.000 euros anuales a proyectos culturales durante los tres últimos ejercicios. El distintivo tendrá una vigencia de cuatro años y podrá renovarse previa acreditación del mantenimiento de los requisitos. Las solicitudes se presentarán entre el 1 de septiembre y el 31 de octubre de cada año."
+        }
+      ]
+    },
+    {
+      "id": "eb-181-resumen-suministro-buques",
+      "task_type": "resumen",
+      "score": 0.948051948051948,
+      "rouge_l": 0.9481,
+      "score_min": 0.948051948051948,
+      "score_max": 0.948051948051948,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.948051948051948,
+          "rouge_l": 0.9481,
+          "prediction": "El Real Decreto 529/2027 regula lo siguiente: Regular la instalación de sistemas de suministro eléctrico a buques atracados para reducir las emisiones en los puertos de interés general. Las autoridades portuarias deberán dotar de puntos de conexión elécción eléctrica los muelles con más de cincuenta escalas anuales de buques de pasaje antes del 30 de junio de 2029. Los buques que se conecten durante la estancia disfrutarán de una bonificación del quince por ciento en la tasa del buque."
+        },
+        {
+          "score": 0.948051948051948,
+          "rouge_l": 0.9481,
+          "prediction": "El Real Decreto 529/2027 regula lo siguiente: Regular la instalación de sistemas de suministro eléctrico a buques atracados para reducir las emisiones en los puertos de interés general. Las autoridades portuarias deberán dotar de puntos de conexión elécción eléctrica los muelles con más de cincuenta escalas anuales de buques de pasaje antes del 30 de junio de 2029. Los buques que se conecten durante la estancia disfrutarán de una bonificación del quince por ciento en la tasa del buque."
+        },
+        {
+          "score": 0.948051948051948,
+          "rouge_l": 0.9481,
+          "prediction": "El Real Decreto 529/2027 regula lo siguiente: Regular la instalación de sistemas de suministro eléctrico a buques atracados para reducir las emisiones en los puertos de interés general. Las autoridades portuarias deberán dotar de puntos de conexión elécción eléctrica los muelles con más de cincuenta escalas anuales de buques de pasaje antes del 30 de junio de 2029. Los buques que se conecten durante la estancia disfrutarán de una bonificación del quince por ciento en la tasa del buque."
+        }
+      ]
+    },
+    {
+      "id": "eb-182-resumen-desechos-buques",
+      "task_type": "resumen",
+      "score": 0.896551724137931,
+      "rouge_l": 0.8966,
+      "score_min": 0.896551724137931,
+      "score_max": 0.896551724137931,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.896551724137931,
+          "rouge_l": 0.8966,
+          "prediction": "La Resolución de Puertos del Estado por la que se aprueban las instrucciones de notificación de desechos generados por buques regula lo siguiente: Los capitanes notificarán los desechos a bordo a través de la ventanilla única marítima con una antelación mínima de veinticuatro horas a la llegada a puerto. Los buques con escalas frecuentes y contrato de entrega en un puerto de su ruta podrán solicitar exención, con validez máxima de un año. La falta de notificación impedirá la asignación de atraque preferente y se comunicará a la capitanía marítima."
+        },
+        {
+          "score": 0.896551724137931,
+          "rouge_l": 0.8966,
+          "prediction": "La Resolución de Puertos del Estado por la que se aprueban las instrucciones de notificación de desechos generados por buques regula lo siguiente: Los capitanes notificarán los desechos a bordo a través de la ventanilla única marítima con una antelación mínima de veinticuatro horas a la llegada a puerto. Los buques con escalas frecuentes y contrato de entrega en un puerto de su ruta podrán solicitar exención, con validez máxima de un año. La falta de notificación impedirá la asignación de atraque preferente y se comunicará a la capitanía marítima."
+        },
+        {
+          "score": 0.896551724137931,
+          "rouge_l": 0.8966,
+          "prediction": "La Resolución de Puertos del Estado por la que se aprueban las instrucciones de notificación de desechos generados por buques regula lo siguiente: Los capitanes notificarán los desechos a bordo a través de la ventanilla única marítima con una antelación mínima de veinticuatro horas a la llegada a puerto. Los buques con escalas frecuentes y contrato de entrega en un puerto de su ruta podrán solicitar exención, con validez máxima de un año. La falta de notificación impedirá la asignación de atraque preferente y se comunicará a la capitanía marítima."
+        }
+      ]
+    },
+    {
+      "id": "eb-183-resumen-estancias-dual",
+      "task_type": "resumen",
+      "score": 0.8275862068965517,
+      "rouge_l": 0.8276,
+      "score_min": 0.8275862068965517,
+      "score_max": 0.8275862068965517,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.8275862068965517,
+          "rouge_l": 0.8276,
+          "prediction": "La Orden EFD/421/2027 regula lo siguiente: La estancia en empresa representará entre el treinta y cinco y el cincuenta por ciento de la duración total del ciclo formativo. El alumnado percibirá una compensación mínima de 450 euros mensuales durante la estancia, a cargo de la empresa. Cada empresa designará una persona tutora por cada cinco alumnos o alumnas, que acreditará una formación específica de al menos veinte horas."
+        },
+        {
+          "score": 0.8275862068965517,
+          "rouge_l": 0.8276,
+          "prediction": "La Orden EFD/421/2027 regula lo siguiente: La estancia en empresa representará entre el treinta y cinco y el cincuenta por ciento de la duración total del ciclo formativo. El alumnado percibirá una compensación mínima de 450 euros mensuales durante la estancia, a cargo de la empresa. Cada empresa designará una persona tutora por cada cinco alumnos o alumnas, que acreditará una formación específica de al menos veinte horas."
+        },
+        {
+          "score": 0.8275862068965517,
+          "rouge_l": 0.8276,
+          "prediction": "La Orden EFD/421/2027 regula lo siguiente: La estancia en empresa representará entre el treinta y cinco y el cincuenta por ciento de la duración total del ciclo formativo. El alumnado percibirá una compensación mínima de 450 euros mensuales durante la estancia, a cargo de la empresa. Cada empresa designará una persona tutora por cada cinco alumnos o alumnas, que acreditará una formación específica de al menos veinte horas."
+        }
+      ]
+    },
+    {
+      "id": "eb-184-resumen-movilidad-dual",
+      "task_type": "resumen",
+      "score": 0.6762589928057553,
+      "rouge_l": 0.6763,
+      "score_min": 0.6762589928057554,
+      "score_max": 0.6762589928057554,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.6762589928057554,
+          "rouge_l": 0.6763,
+          "prediction": "La Resolución del Servicio Público de Empleo Estatal por la que se convocan ayudas de movilidad para el alumnado de formación profesional dual regula lo siguiente: La ayuda será de 180 euros mensuales cuando la empresa diste más de treinta kilómetros del centro educativo, y de 320 euros mensuales cuando la estancia exija cambio de residencia. Los plazos principales son tres meses."
+        },
+        {
+          "score": 0.6762589928057554,
+          "rouge_l": 0.6763,
+          "prediction": "La Resolución del Servicio Público de Empleo Estatal por la que se convocan ayudas de movilidad para el alumnado de formación profesional dual regula lo siguiente: La ayuda será de 180 euros mensuales cuando la empresa diste más de treinta kilómetros del centro educativo, y de 320 euros mensuales cuando la estancia exija cambio de residencia. Los plazos principales son tres meses."
+        },
+        {
+          "score": 0.6762589928057554,
+          "rouge_l": 0.6763,
+          "prediction": "La Resolución del Servicio Público de Empleo Estatal por la que se convocan ayudas de movilidad para el alumnado de formación profesional dual regula lo siguiente: La ayuda será de 180 euros mensuales cuando la empresa diste más de treinta kilómetros del centro educativo, y de 320 euros mensuales cuando la estancia exija cambio de residencia. Los plazos principales son tres meses."
+        }
+      ]
+    },
+    {
+      "id": "eb-185-resumen-salud-mental",
+      "task_type": "resumen",
+      "score": 0.49206349206349204,
+      "rouge_l": 0.4921,
+      "score_min": 0.49206349206349204,
+      "score_max": 0.49206349206349204,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.49206349206349204,
+          "rouge_l": 0.4921,
+          "prediction": "La Ley 21/2027 regula lo siguiente: Las empresas de más de cincuenta personas trabajadoras deberán incluir la evaluación específica de riesgos psicosociales en su plan de prevención y actualizarla cada dos años. Los plazos principales son nueve meses."
+        },
+        {
+          "score": 0.49206349206349204,
+          "rouge_l": 0.4921,
+          "prediction": "La Ley 21/2027 regula lo siguiente: Las empresas de más de cincuenta personas trabajadoras deberán incluir la evaluación específica de riesgos psicosociales en su plan de prevención y actualizarla cada dos años. Los plazos principales son nueve meses."
+        },
+        {
+          "score": 0.49206349206349204,
+          "rouge_l": 0.4921,
+          "prediction": "La Ley 21/2027 regula lo siguiente: Las empresas de más de cincuenta personas trabajadoras deberán incluir la evaluación específica de riesgos psicosociales en su plan de prevención y actualizarla cada dos años. Los plazos principales son nueve meses."
+        }
+      ]
+    },
+    {
+      "id": "eb-186-resumen-referente-bienestar",
+      "task_type": "resumen",
+      "score": 0.4423076923076923,
+      "rouge_l": 0.4423,
+      "score_min": 0.4423076923076923,
+      "score_max": 0.4423076923076923,
+      "score_std": 0.0,
+      "repeats": [
+        {
+          "score": 0.4423076923076923,
+          "rouge_l": 0.4423,
+          "prediction": "La Orden TES/88/2027 regula lo siguiente: Regular la designación y funciones del referente de bienestar emocional en los centros de trabajo. Los plazos principales son seis meses."
+        },
+        {
+          "score": 0.4423076923076923,
+          "rouge_l": 0.4423,
+          "prediction": "La Orden TES/88/2027 regula lo siguiente: Regular la designación y funciones del referente de bienestar emocional en los centros de trabajo. Los plazos principales son seis meses."
+        },
+        {
+          "score": 0.4423076923076923,
+          "rouge_l": 0.4423,
+          "prediction": "La Orden TES/88/2027 regula lo siguiente: Regular la designación y funciones del referente de bienestar emocional en los centros de trabajo. Los plazos principales son seis meses."
+        }
+      ]
+    }
+  ],
+  "generation": {
+    "api_base": "http://localhost:11434/v1",
+    "temperature": 0.0,
+    "max_tokens": 1024,
+    "repeats": 3,
+    "interleaved_models": [
+      "qwen3-base-2507-eval",
+      "juristune-v4-eval",
+      "juristune-v5-eval",
+      "juristune-v6-eval"
+    ],
+    "timestamp_utc": "2026-08-29T11:30:35+00:00"
+  }
+}

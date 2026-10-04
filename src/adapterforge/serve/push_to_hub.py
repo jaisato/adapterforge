@@ -6,7 +6,9 @@ domain_bench, opcional), la escribe como ``README.md`` del adapter y sube la
 carpeta completa al repo del Hub.
 
 ``huggingface_hub`` se importa de forma perezosa. El token se toma de
-``--token``, ``HF_TOKEN`` o ``AF_HF_TOKEN`` (en ese orden).
+``--token`` o, mejor (en la línea de comandos queda en el historial y en
+``ps``), de ``AF_HF_TOKEN``/``HF_TOKEN`` en el entorno o en el ``.env``
+(ver :func:`adapterforge.settings.resolve_hf_token`).
 
 Uso::
 
@@ -24,12 +26,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any
 
-from adapterforge.settings import get_settings
+from adapterforge.settings import get_settings, resolve_hf_token
 
 _PLACEHOLDER = re.compile(r"\{\{\s*([a-z_0-9]+)\s*\}\}")
 DEFAULT_TEMPLATE = Path("serve/templates/model_card.md")
@@ -107,11 +108,12 @@ def push(
     if not adapter_path.is_dir():
         raise FileNotFoundError(f"No existe el directorio del adapter: {adapter_path}")
 
-    resolved_token = token or os.environ.get("HF_TOKEN") or get_settings().hf_token
+    resolved_token = resolve_hf_token(token)
     if not resolved_token:
         raise RuntimeError(
-            "No hay token de Hugging Face: usa --token, HF_TOKEN o AF_HF_TOKEN. "
-            "El token necesita permiso de escritura sobre el namespace Jaisato."
+            "No hay token de Hugging Face: define HF_TOKEN o AF_HF_TOKEN (entorno o "
+            ".env) o usa --token. El token necesita permiso de escritura sobre el "
+            "namespace Jaisato."
         )
 
     metrics = json.loads(Path(metrics_path).read_text(encoding="utf-8"))
@@ -148,7 +150,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--metrics", required=True, help="metrics.json del run")
     parser.add_argument("--bench-results", default=None, help="results.json de domain_bench")
     parser.add_argument("--card-template", default=str(DEFAULT_TEMPLATE))
-    parser.add_argument("--token", default=None)
+    parser.add_argument(
+        "--token",
+        default=None,
+        help="Desaconsejado (queda en el historial y en `ps`): mejor HF_TOKEN o "
+        "AF_HF_TOKEN en el entorno o en .env",
+    )
     parser.add_argument("--private", action="store_true")
     args = parser.parse_args(argv)
 

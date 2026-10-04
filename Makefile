@@ -11,18 +11,23 @@ BASE_MODEL ?= qwen3-base-2507-eval
 ADAPTER_MODEL ?= juristune-v6-eval
 REPEATS ?= 3
 BENCH ?= evals/domain_bench_v2.jsonl
+DATA_VERSION ?= v6
 
-.PHONY: help data data-v6 data-v6-teacher train train-smoke train-v3 train-v4 train-v5 train-v6 dpo eval eval-pair eval-report export test lint mlflow clean
+.PHONY: help data data-pull data-v6 data-v6-teacher train train-smoke train-v3 train-v4 train-v5 train-v6 dpo eval eval-pair eval-report export test lint mlflow clean
 
 help: ## Lista los objetivos disponibles
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
 
-# NOTA: los datasets juristune-v3_*/v4_*/v5_*/v6_* commiteados en data/processed/
-# son los canónicos (cada versión quedó congelada con el código de su época).
+# NOTA: los datasets juristune-v3_*…v6_* de data/processed/ NO se versionan
+# (superan el límite de GitHub): los canónicos, congelados con el código de su
+# época, están en el dataset privado Jaisato/juristune-datasets (make data-pull).
 # El dataset CANÓNICO (juristune-v6_*) incluye los ejemplos del teacher y solo
 # lo escribe data-v6-teacher; data-v6 a secas (solo offline) escribe el prefijo
 # de trabajo juristune-v6-offline_* para no pisar el canónico sin el teacher
 # (ya ocurrió dos veces: 386e55f y este fix).
+data-pull: ## Descarga corpus_boe + juristune-$(DATA_VERSION) del dataset privado de HF (HF_TOKEN en entorno o .env; FORCE=1 sustituye lo local)
+	$(PY) -m adapterforge.data.pull --version $(DATA_VERSION) $(if $(FORCE),--force,)
+
 data-v6: ## Ingesta v6 SOLO OFFLINE (prefijo de trabajo; el canónico lo escribe data-v6-teacher)
 	$(PY) -m adapterforge.data.synthesize --input data/interim/documents.jsonl \
 		--output data/interim/sft_raw_v6.jsonl --offline --balance default
