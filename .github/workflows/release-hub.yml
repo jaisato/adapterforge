@@ -41,7 +41,7 @@ jobs:
           docker compose --profile serve-vllm up -d vllm
           # Espera activa al endpoint OpenAI-compatible (máx. 10 min: descarga
           # de la base en el primer arranque).
-          for i in $(seq 1 120); do
+          for _ in $(seq 1 120); do
             if curl -sf http://localhost:8000/v1/models > /dev/null; then break; fi
             sleep 5
           done
