@@ -1,5 +1,6 @@
 # Release con quality gate: al taggear v*, evalúa el adapter con el benchmark
 # de dominio y, solo si supera el umbral, lo publica en Hugging Face Hub.
+# Proceso completo (versionado, tag, requisitos del runner): docs/RELEASING.md
 #
 # Secrets necesarios (Settings > Secrets and variables > Actions):
 #   HF_TOKEN  -> token de escritura del namespace Jaisato
@@ -10,15 +11,37 @@ on:
     tags: ["v*"]
 
 env:
-  ADAPTER_DIR: artifacts/qlora_qwen3-4b/adapter
-  METRICS: artifacts/qlora_qwen3-4b/metrics.json
+  # Adapter que se publica: el final (JurisTune v6, configs/qlora_qwen3-4b_v6.yaml).
+  # artifacts/ no se versiona: tiene que existir en el workspace del runner.
+  # Ruta relativa a la raíz del repo; compose.yaml la lee para montarla en vLLM.
+  ADAPTER_DIR: artifacts/qlora_qwen3-4b-v6/adapter
+  METRICS: artifacts/qlora_qwen3-4b-v6/metrics.json
+  BENCH: evals/domain_bench_v2.jsonl
   BENCH_MIN_SCORE: "0.55"
 
 permissions:
   contents: read
 
 jobs:
+  # Gate barato antes de ocupar la GPU: el tag debe ser v<versión declarada>
+  # y la versión debe coincidir en pyproject.toml, __version__ y CHANGELOG.md.
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Coherencia de versión (pyproject, __version__, CHANGELOG, tag)
+        run: python scripts/check_release.py --tag "${GITHUB_REF_NAME}"
+
   evaluate-and-publish:
+    needs: verify
     # GPU necesaria para servir el adapter durante la evaluación.
     runs-on: [self-hosted, gpu]
     timeout-minutes: 60
@@ -34,12 +57,22 @@ jobs:
           pip install -e .
           pip install "huggingface_hub>=0.30,<1"
 
+      - name: Comprobar que el adapter y sus métricas están en el runner
+        run: |
+          for required in "${ADAPTER_DIR}/adapter_config.json" "${METRICS}"; do
+            if [ ! -f "${required}" ]; then
+              echo "::error::No existe ${required} en el workspace del runner." \
+                "artifacts/ no se versiona: copia el run del adapter antes de etiquetar (docs/RELEASING.md)."
+              exit 1
+            fi
+          done
+
       - name: Levantar vLLM con el adapter (multi-LoRA)
         run: |
           docker compose --profile serve-vllm up -d vllm
           # Espera activa al endpoint OpenAI-compatible (máx. 10 min: descarga
           # de la base en el primer arranque).
-          for i in $(seq 1 120); do
+          for _ in $(seq 1 120); do
             if curl -sf http://localhost:8000/v1/models > /dev/null; then break; fi
             sleep 5
           done
@@ -48,6 +81,7 @@ jobs:
       - name: Benchmark de dominio con quality gate
         run: |
           python -m adapterforge.eval.domain_bench \
+            --bench "${BENCH}" \
             --api-base http://localhost:8000/v1 \
             --model juristune \
             --output artifacts/eval/adapter.json \

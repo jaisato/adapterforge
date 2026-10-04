@@ -232,6 +232,23 @@ Dos niveles, ambos validados con pydantic:
 El runner self-hosted es la propia máquina WSL2 con GPU (los runners gratuitos
 de GitHub no tienen GPU); se registra con las etiquetas `self-hosted, gpu`.
 
+### Versiones y releases
+
+La versión del paquete (`pyproject.toml`, `adapterforge.__version__`,
+[`CHANGELOG.md`](CHANGELOG.md), tag `vX.Y.Z`) sigue SemVer y es independiente
+de las iteraciones del adapter (`juristune-v6` es el adapter final que
+publica la release). `scripts/check_release.py` comprueba que las cuatro
+fuentes coinciden (lo ejecutan `pytest` y el job `verify` de
+`release-hub.yml` con el tag). Una release es un push de tag:
+
+```bash
+python scripts/check_release.py --tag v0.1.0   # versión coherente en todas partes
+git tag v0.1.0 && git push origin v0.1.0        # dispara release-hub.yml y deploy-hf.yml
+```
+
+Checklist completo, requisitos del runner y qué hacer si algo falla en
+[docs/RELEASING.md](docs/RELEASING.md).
+
 ## Puntos de extensión
 
 Buscables en el código como `TODO(jairo):`

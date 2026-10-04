@@ -7,17 +7,20 @@ a la vez.
 
 ## Arranque
 
-El perfil `serve-vllm` de `compose.yaml` ya lo deja listo:
+El perfil `serve-vllm` de `compose.yaml` ya lo deja listo (monta el adapter
+final, `artifacts/qlora_qwen3-4b-v6/adapter`; otro run con la variable
+`ADAPTER_DIR`, ruta relativa a la raíz del repo):
 
 ```bash
 docker compose --profile serve-vllm up vllm
+ADAPTER_DIR=artifacts/qlora_qwen3-4b/adapter docker compose --profile serve-vllm up vllm
 ```
 
 Equivalente manual (para ver todos los flags):
 
 ```bash
 docker run --rm --gpus all -p 8000:8000 \
-  -v ./artifacts/qlora_qwen3-4b/adapter:/adapters/juristune:ro \
+  -v ./artifacts/qlora_qwen3-4b-v6/adapter:/adapters/juristune:ro \
   vllm/vllm-openai:v0.8.5 \
   --model Qwen/Qwen3-4B-Instruct-2507 \
   --max-model-len 4096 \
