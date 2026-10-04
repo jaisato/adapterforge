@@ -1,0 +1,22 @@
+{
+  "experiment": "juristune-qwen3-4b-v6",
+  "phase": "sft",
+  "base_model": "Qwen/Qwen3-4B-Instruct-2507",
+  "steps": 504,
+  "train_loss_initial": 1.2662,
+  "train_loss_final": 0.0077,
+  "train_runtime_s": 10732.07,
+  "effective_batch_size": 16,
+  "seq_len": 2048,
+  "lora_r": 16,
+  "used_unsloth": true,
+  "vram_estimate_gb": 6.5,
+  "timestamp": "2026-08-25T15:10:01+0000",
+  "train_loss_mean": 0.05292983464656457,
+  "git_sha": "e8cb16a",
+  "chat_template": "qwen3_instruct_2507-oficial",
+  "val_examples": 224,
+  "eval_loss_final": 0.022849973291158676,
+  "eval_loss_best": 0.022849973291158676,
+  "n_evals": 10
+}

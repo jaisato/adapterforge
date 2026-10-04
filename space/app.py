@@ -81,7 +81,7 @@ demo = gr.ChatInterface(
     description=(
         "Adapter QLoRA jurídico-administrativo entrenado en una GPU de 8 GB. "
         "Pega un extracto de una disposición y pide resumen, extracción JSON o "
-        "lenguaje llano. Repositorio: github.com/jairosarabia/adapterforge"
+        "lenguaje llano. Repositorio: github.com/jaisato/adapterforge"
     ),
     examples=EXAMPLES,
 )

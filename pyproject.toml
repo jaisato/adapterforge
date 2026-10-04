@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/jairosarabia/adapterforge"
+Repository = "https://github.com/jaisato/adapterforge"
 "Hugging Face" = "https://huggingface.co/Jaisato"
 
 [project.optional-dependencies]
@@ -64,6 +64,12 @@ eval = [
 # Tracking de experimentos con MLflow (servidor en compose.yaml, puerto 5000).
 track = [
     "mlflow>=2.15,<4",
+]
+# Hugging Face Hub: descarga de datasets (data.pull), publicación del adapter
+# (serve.push_to_hub) y del Space (scripts/deploy_space.py). >=0.34: primera
+# versión con la CLI `hf` (`hf download`, `hf auth login`) que cita el README.
+hub = [
+    "huggingface_hub>=0.34,<1",
 ]
 
 [tool.hatch.build.targets.wheel]

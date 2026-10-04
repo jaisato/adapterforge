@@ -21,7 +21,7 @@ jurídico-administrativa española**: resúmenes estructurados de disposiciones,
 Q&A con cita verificable, extracción de obligaciones/plazos/sanciones en JSON
 y reescritura en lenguaje llano.
 
-Entrenado con [AdapterForge](https://github.com/jairosarabia/adapterforge)
+Entrenado con [AdapterForge](https://github.com/jaisato/adapterforge)
 (pipeline reproducible: dataset sintético anclado al BOE -> QLoRA -> DPO ->
 evaluación before/after) en una GPU de consumo de 8 GB.
 
@@ -58,7 +58,10 @@ Con vLLM (multi-LoRA): `--enable-lora --lora-modules juristune=<ruta>` y
 
 Dataset sintético generado por destilación sobre textos normativos públicos
 (el BOE es reutilizable con cita de la fuente). Los ejemplos están anclados al
-documento para minimizar la alucinación del teacher. Licencia del adapter: MIT.
+documento para minimizar la alucinación del teacher. El corpus y los splits
+`juristune-v*` están en el dataset privado
+[Jaisato/juristune-datasets](https://huggingface.co/datasets/Jaisato/juristune-datasets)
+(`make data-pull` en el repositorio). Licencia del adapter: MIT.
 
 ## Límites de uso
 
