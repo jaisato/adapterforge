@@ -1,4 +1,4 @@
 # Demo CPU del Space (tier gratuito). Versiones fijadas para reproducibilidad.
-gradio==6.15.1
+gradio==6.16.0
 llama-cpp-python==0.3.9
 huggingface_hub==0.36.2
