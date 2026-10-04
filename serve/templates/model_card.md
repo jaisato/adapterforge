@@ -22,8 +22,8 @@ Q&A con cita verificable, extracción de obligaciones/plazos/sanciones en JSON
 y reescritura en lenguaje llano.
 
 Entrenado con [AdapterForge](https://github.com/jaisato/adapterforge)
-(pipeline reproducible: dataset sintético anclado al BOE -> QLoRA -> DPO ->
-evaluación before/after) en una GPU de consumo de 8 GB.
+(pipeline reproducible: dataset sintético anclado al BOE -> QLoRA, fase
+`{{ phase }}` -> evaluación before/after) en una GPU de consumo de 8 GB.
 
 ## Métricas
 

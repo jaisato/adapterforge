@@ -351,35 +351,57 @@ Dos niveles, ambos validados con pydantic:
 | Destino | Qué | Cómo |
 |---|---|---|
 | **HF Hub (Jaisato)** | Adapter safetensors + model card con métricas → [`Jaisato/juristune-qwen3-4b-lora`](https://huggingface.co/Jaisato/juristune-qwen3-4b-lora) | `python -m adapterforge.serve.push_to_hub ...` o tag `v*` (release-hub.yml) |
-| **HF Space demo** | Gradio + `llama-cpp-python` CPU cargando el GGUF `AF_GGUF_REPO` (por defecto `Jaisato/juristune-qwen3-4b-gguf`) desde el Hub → [`Jaisato/adapterforge-demo`](https://huggingface.co/spaces/Jaisato/adapterforge-demo) | carpeta `space/`; deploy-hf.yml la sincroniza con el Space |
+| **HF Space demo** | Gradio + `llama-cpp-python` CPU cargando el GGUF `AF_GGUF_REPO` (por defecto `Jaisato/juristune-qwen3-4b-gguf`) desde el Hub → [`Jaisato/adapterforge-demo`](https://huggingface.co/spaces/Jaisato/adapterforge-demo) | carpeta `space/`; deploy-hf.yml (a mano, cuando exista el GGUF) la sincroniza con el Space |
 | **HF Hub (datasets)** | Corpus BOE y datasets `juristune-v*` (privado) → [`Jaisato/juristune-datasets`](https://huggingface.co/datasets/Jaisato/juristune-datasets) | `make data-pull` (ver [Datos](#datos-corpus-boe-y-datasets-juristune)) |
 | **vLLM multi-LoRA (GPU)** | Base residente + N adapters por petición | `docker compose --profile serve-vllm up vllm`; guía en `serve/vllm_lora/README.md` |
 | **Ollama (CPU/edge/VPS)** | GGUF Q4_K_M + Modelfile | `make export` y `ollama create juristune -f artifacts/gguf/Modelfile` |
 
 > Estado del Hub (2026-10-04): solo existe el dataset `Jaisato/juristune-datasets`.
-> El repo del adapter y el Space se crean en la primera release (`release-hub.yml`
-> y `deploy-hf.yml` con el tag `v*`); el repo GGUF que carga el Space
-> (`Jaisato/juristune-qwen3-4b-gguf`) hay que publicarlo aparte con el GGUF de
-> `make export` (pendiente: `TODO(jairo)` en `src/adapterforge/serve/push_to_hub.py`).
+> El repo del adapter lo crea la primera release (`release-hub.yml`, tag `v*`).
+> El repo GGUF que carga el Space (`Jaisato/juristune-qwen3-4b-gguf`) hay que
+> publicarlo aparte con el GGUF de `make export` (pendiente: `TODO(jairo)` en
+> `src/adapterforge/serve/push_to_hub.py`); hasta entonces el Space no se
+> despliega: `deploy-hf.yml` es manual y comprueba antes que el GGUF existe.
 
-### Secrets de GitHub Actions
+### Secrets y variables de GitHub Actions
 
-| Secret | Usado por | Descripción |
+| Secret / variable | Usado por | Descripción |
 |---|---|---|
-| `HF_TOKEN` | release-hub.yml, deploy-hf.yml | Token de **escritura** del namespace `Jaisato` (publicar adapter y Space) |
-| `OPENAI_API_KEY` (opcional) | jobs de síntesis/juez si se automatizan | Clave del proveedor del teacher vía litellm |
+| `HF_TOKEN` (secret) | release-hub.yml, deploy-hf.yml | Token de **escritura** del namespace `Jaisato` (publicar adapter y Space) |
+| `ADAPTER_DIR` (variable) | release-hub.yml | Ruta **absoluta** al `adapter/` del run que se publica, en la máquina del runner y fuera de su workspace (ver [docs/RELEASING.md](docs/RELEASING.md)) |
+| `OPENAI_API_KEY` (secret, opcional) | jobs de síntesis/juez si se automatizan | Clave del proveedor del teacher vía litellm |
 
 ## CI/CD
 
 | Workflow | Disparador | Qué hace |
 |---|---|---|
-| `ci.yml` | push a master / PR / manual | Workflow reutilizable [`jaisato/.github` python-ci](https://github.com/jaisato/.github): `ruff check` + `pytest` (Python 3.12, núcleo sin GPU/red) y `pip-audit` informativo; más `actionlint` sobre los cuatro workflows. Acciones ancladas a SHA (Dependabot las actualiza semanalmente) |
+| `ci.yml` | push a master / PR / manual | Workflow reutilizable [`jaisato/.github` python-ci](https://github.com/jaisato/.github) (por `@main`): `ruff check` + `pytest` (Python 3.12, núcleo sin GPU/red) y `pip-audit` informativo; más `actionlint` sobre los cuatro workflows. Las acciones de los workflows del repo van ancladas a SHA; Dependabot las actualiza cada semana en una PR agrupada, sin saltos de versión mayor |
 | `smoke-train.yml` | PR que toca `train/**`, `configs/**`, Dockerfile o el sample SFT | Runner `[self-hosted, gpu]`: construye la imagen, ejecuta `make train-smoke` (30 pasos reales) y **verifica que la loss final < inicial** parseando `metrics.json` |
-| `release-hub.yml` | tag `v*` | Levanta vLLM con el adapter, corre `domain_bench` con `--min-score` como gate y, si pasa, publica en HF Hub con `HF_TOKEN` |
-| `deploy-hf.yml` | tag `v*` / manual | Sube `space/` al Space `Jaisato/adapterforge-demo` |
+| `release-hub.yml` | tag `v*` | `verify`: versión coherente (`check_release.py --tag`) y commit en `master`. Después, en el runner con GPU: comprueba que `ADAPTER_DIR` es el run v6 versionado, levanta vLLM con el adapter, corre `domain_bench` con `--min-score` como gate y, si pasa, publica en HF Hub con `HF_TOKEN` |
+| `deploy-hf.yml` | manual | Comprueba que existe el GGUF que carga el Space y sube `space/` a `Jaisato/adapterforge-demo` |
 
 El runner self-hosted es la propia máquina WSL2 con GPU (los runners gratuitos
 de GitHub no tienen GPU); se registra con las etiquetas `self-hosted, gpu`.
+
+### Versiones y releases
+
+La versión del paquete (`pyproject.toml`, `adapterforge.__version__`,
+[`CHANGELOG.md`](CHANGELOG.md), tag `vX.Y.Z`) sigue SemVer y es independiente
+de las iteraciones del adapter (`juristune-v6` es el adapter final que
+publica la release). `scripts/check_release.py` comprueba que las cuatro
+fuentes coinciden (lo ejecutan `pytest` y el job `verify` de
+`release-hub.yml` con el tag). La sección de la versión en el CHANGELOG lleva
+la fecha del día del tag; hasta el commit `chore(release): vX.Y.Z` queda
+`YYYY-MM-DD` y `check_release.py --tag` falla a propósito. Una release es un
+push de tag:
+
+```bash
+python scripts/check_release.py --tag v0.1.0   # versión, fecha y [Unreleased] vacío
+git tag -a v0.1.0 -m "AdapterForge 0.1.0" && git push origin v0.1.0   # dispara release-hub.yml
+```
+
+Checklist completo, requisitos del runner y qué hacer si algo falla en
+[docs/RELEASING.md](docs/RELEASING.md).
 
 ## Puntos de extensión
 
@@ -402,6 +424,7 @@ adapterforge/
 ├── compose.yaml                  # profiles: train (GPU), track (mlflow:5000), serve-vllm
 ├── Makefile                      # data / data-pull / train-v6 / train-smoke / dpo / eval-pair / export / test / lint
 ├── pyproject.toml                # core mínimo + grupos dev/train/eval/track/hub
+├── CHANGELOG.md                  # cambios por versión del paquete (Keep a Changelog + SemVer)
 ├── configs/                      # experimentos YAML validados (ExperimentConfig)
 ├── prompts/                      # plantillas del teacher: resumen, qa, obligaciones, llano
 ├── data/
@@ -410,7 +433,7 @@ adapterforge/
 │   └── (corpus_boe, juristune-v*)  # no versionados: `make data-pull` desde HF (Jaisato/juristune-datasets)
 ├── evals/
 │   ├── domain_bench_v2.jsonl     # 111 casos con referencia (extract/qa/resumen); domain_bench.jsonl = 25 originales
-│   └── results/v6/               # bench-v2-final/ (base, v4, v5, v6) + pair/ (base vs v6) + informe + métricas del run
+│   └── results/v6/               # bench-v2-final/ (base, v4, v5, v6) + pair/ (base vs v6) + informe + métricas y sha256 del run
 ├── src/adapterforge/
 │   ├── settings.py               # pydantic-settings (env AF_ o .env; token HF_TOKEN/AF_HF_TOKEN)
 │   ├── config.py                 # ExperimentConfig + validación VRAM/OOM
@@ -423,12 +446,12 @@ adapterforge/
 ├── serve/                        # export_gguf.sh · ollama/Modelfile.j2 · vllm_lora/ · templates/model_card.md
 ├── space/                        # demo HF Space (Gradio + llama-cpp-python CPU)
 ├── docker/Dockerfile.train       # CUDA 12.4.1, versiones fijadas, usuario no root
-├── scripts/                      # check_smoke.py · deploy_space.py · fetch_boe_corpus.py · lm_eval_runner.sh
-├── tests/                        # 172 tests sin GPU/red (respx para el path HTTP)
-├── docs/adr/                     # 3 decisiones de arquitectura
+├── scripts/                      # check_release.py · check_smoke.py · deploy_space.py · fetch_boe_corpus.py · lm_eval_runner.sh
+├── tests/                        # 183 tests sin GPU/red (respx para el path HTTP)
+├── docs/                         # RELEASING.md (proceso de release) · adr/ (3 decisiones de arquitectura)
 └── .github/
     ├── workflows/                # ci (reutilizable python-ci + actionlint) · smoke-train · release-hub · deploy-hf
-    ├── dependabot.yml            # actualiza cada semana los SHA de las acciones
+    ├── dependabot.yml            # PR semanal agrupada con los SHA de las acciones (sin saltos de mayor)
     └── actionlint.yaml           # etiqueta `gpu` del runner self-hosted
 ```
 

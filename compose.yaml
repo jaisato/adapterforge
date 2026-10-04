@@ -72,7 +72,15 @@ services:
     environment:
       - HF_HOME=/root/.cache/huggingface
     volumes:
-      - ./artifacts/qlora_qwen3-4b/adapter:/adapters/juristune:ro
+      # Adapter servido como «juristune»: el final (v6) salvo que ADAPTER_DIR
+      # indique otro run, con ruta absoluta (la variable de repositorio que usa
+      # release-hub.yml: el run vive fuera del workspace del runner) o relativa
+      # a la raíz del repo (p. ej. ADAPTER_DIR=artifacts/smoke/adapter).
+      # Sintaxis larga: `source` admite las dos formas sin anteponer «./».
+      - type: bind
+        source: ${ADAPTER_DIR:-./artifacts/qlora_qwen3-4b-v6/adapter}
+        target: /adapters/juristune
+        read_only: true
       - hf-cache:/root/.cache/huggingface
     ipc: host
     extra_hosts:

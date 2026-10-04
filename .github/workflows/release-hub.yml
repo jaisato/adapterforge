@@ -1,8 +1,13 @@
 # Release con quality gate: al taggear v*, evalúa el adapter con el benchmark
 # de dominio y, solo si supera el umbral, lo publica en Hugging Face Hub.
+# Proceso completo (versionado, tag, requisitos del runner): docs/RELEASING.md
 #
 # Secrets necesarios (Settings > Secrets and variables > Actions):
-#   HF_TOKEN  -> token de escritura del namespace Jaisato
+#   HF_TOKEN     -> token de escritura del namespace Jaisato
+# Variables necesarias (misma pantalla, pestaña Variables):
+#   ADAPTER_DIR  -> ruta ABSOLUTA, en la máquina del runner y fuera de su
+#                   workspace, al adapter/ del run que se publica, con su
+#                   metrics.json en el directorio padre
 name: release-hub
 
 on:
@@ -10,15 +15,53 @@ on:
     tags: ["v*"]
 
 env:
-  ADAPTER_DIR: artifacts/qlora_qwen3-4b/adapter
-  METRICS: artifacts/qlora_qwen3-4b/metrics.json
-  BENCH_MIN_SCORE: "0.55"
+  # Adapter que se publica: el final (JurisTune v6, configs/qlora_qwen3-4b_v6.yaml).
+  # artifacts/ no se versiona y actions/checkout limpia el workspace
+  # (git clean -ffdx) al empezar cada job: lo que se copie dentro no llega a
+  # la publicación. Por eso el run vive fuera del workspace y lo indica la
+  # variable de repositorio ADAPTER_DIR; compose.yaml la monta en vLLM tal cual.
+  ADAPTER_DIR: ${{ vars.ADAPTER_DIR }}
+  # Evidencia versionada del run que se publica: su metrics.json tiene que ser
+  # idéntico a train_metrics.json y sus pesos casar con adapter_model.sha256.
+  RUN_EVIDENCE: evals/results/v6
+  BENCH: evals/domain_bench_v2.jsonl
+  # Por encima de la base (0.840 en este benchmark) y por debajo de v6 (0.898),
+  # ambos servidos como GGUF Q4_K_M: el gate exige que el adapter mejore a la base.
+  BENCH_MIN_SCORE: "0.85"
 
 permissions:
   contents: read
 
 jobs:
+  # Gate barato antes de ocupar la GPU: el tag debe ser v<versión declarada>,
+  # la versión debe coincidir en pyproject.toml, __version__ y CHANGELOG.md
+  # (con fecha y [Unreleased] vacío) y el commit etiquetado debe estar en master.
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+          # Historial completo: hace falta origin/master para el último paso.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Coherencia de versión (pyproject, __version__, CHANGELOG, tag)
+        run: python scripts/check_release.py --tag "${GITHUB_REF_NAME}"
+
+      - name: El commit etiquetado está en master
+        run: |
+          if ! git merge-base --is-ancestor HEAD origin/master; then
+            echo "::error::${GITHUB_REF_NAME} apunta a $(git rev-parse --short HEAD), que no está en master: etiqueta solo commits fusionados."
+            exit 1
+          fi
+
   evaluate-and-publish:
+    needs: verify
     # GPU necesaria para servir el adapter durante la evaluación.
     runs-on: [self-hosted, gpu]
     timeout-minutes: 60
@@ -31,10 +74,40 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Instalar núcleo + huggingface_hub
+      - name: Instalar núcleo + extra hub
+        run: pip install -e ".[hub]"
+
+      - name: Comprobar que el run del adapter es el documentado
         run: |
-          pip install -e .
-          pip install "huggingface_hub>=0.30,<1"
+          if [ -z "${ADAPTER_DIR}" ]; then
+            echo "::error::Falta la variable de repositorio ADAPTER_DIR: ruta absoluta al adapter/ del run, fuera del workspace del runner (docs/RELEASING.md)."
+            exit 1
+          fi
+          case "${ADAPTER_DIR}" in
+            /*) ;;
+            *) echo "::error::ADAPTER_DIR debe ser una ruta absoluta: ${ADAPTER_DIR}"; exit 1 ;;
+          esac
+          case "${ADAPTER_DIR%/}/" in
+            "${GITHUB_WORKSPACE}"/*)
+              echo "::error::ADAPTER_DIR está dentro del workspace (${GITHUB_WORKSPACE}): actions/checkout lo borra al empezar cada job."
+              exit 1 ;;
+          esac
+          metrics="$(dirname "${ADAPTER_DIR%/}")/metrics.json"
+          for required in "${ADAPTER_DIR}/adapter_config.json" "${ADAPTER_DIR}/adapter_model.safetensors" "${metrics}"; do
+            if [ ! -f "${required}" ]; then
+              echo "::error::No existe ${required} en la máquina del runner (docs/RELEASING.md)."
+              exit 1
+            fi
+          done
+          if ! cmp -s "${metrics}" "${RUN_EVIDENCE}/train_metrics.json"; then
+            echo "::error::${metrics} no es el del run versionado en ${RUN_EVIDENCE}/train_metrics.json."
+            exit 1
+          fi
+          if ! (cd "${ADAPTER_DIR}" && sha256sum --check --strict "${GITHUB_WORKSPACE}/${RUN_EVIDENCE}/adapter_model.sha256"); then
+            echo "::error::Los pesos de ${ADAPTER_DIR} no son los del run de ${RUN_EVIDENCE} (adapter_model.sha256)."
+            exit 1
+          fi
+          echo "METRICS=${metrics}" >> "${GITHUB_ENV}"
 
       - name: Levantar vLLM con el adapter (multi-LoRA)
         run: |
@@ -50,6 +123,7 @@ jobs:
       - name: Benchmark de dominio con quality gate
         run: |
           python -m adapterforge.eval.domain_bench \
+            --bench "${BENCH}" \
             --api-base http://localhost:8000/v1 \
             --model juristune \
             --output artifacts/eval/adapter.json \

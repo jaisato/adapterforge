@@ -6,4 +6,16 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    labels: ["ci", "dependencies"]
+    # Una sola PR semanal con todas las acciones, como en jaisato/.github.
+    groups:
+      github-actions:
+        patterns: ["*"]
+    # La serie mayor de checkout, setup-python y upload-artifact se mantiene a
+    # propósito: smoke-train y release-hub corren en el runner self-hosted y un
+    # salto de versión mayor cambia el runtime de Node (y la versión mínima del
+    # runner). Esos saltos se hacen a mano, por PR, junto con el runner.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    # Etiqueta que ya existe en el repositorio (no hay etiqueta `ci`).
+    labels: ["dependencies"]
