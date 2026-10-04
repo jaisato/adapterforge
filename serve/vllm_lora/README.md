@@ -9,11 +9,12 @@ a la vez.
 
 El perfil `serve-vllm` de `compose.yaml` ya lo deja listo (monta el adapter
 final, `artifacts/qlora_qwen3-4b-v6/adapter`; otro run con la variable
-`ADAPTER_DIR`, ruta relativa a la raíz del repo):
+`ADAPTER_DIR`, ruta absoluta o relativa a la raíz del repo):
 
 ```bash
 docker compose --profile serve-vllm up vllm
 ADAPTER_DIR=artifacts/qlora_qwen3-4b/adapter docker compose --profile serve-vllm up vllm
+ADAPTER_DIR=/ruta/absoluta/al/adapter docker compose --profile serve-vllm up vllm
 ```
 
 Equivalente manual (para ver todos los flags):
