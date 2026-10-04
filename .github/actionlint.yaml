@@ -1,0 +1,5 @@
+# Etiquetas del runner propio con GPU (máquina WSL2) para actionlint:
+# `runs-on: [self-hosted, gpu]` en smoke-train.yml y release-hub.yml.
+self-hosted-runner:
+  labels:
+    - gpu
