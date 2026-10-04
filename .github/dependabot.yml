@@ -1,0 +1,9 @@
+# Mantiene actualizadas las acciones ancladas a SHA (política de anclaje de
+# jaisato/.github): cada PR cambia el SHA y el comentario de versión a la vez.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: ["ci", "dependencies"]

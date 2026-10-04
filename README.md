@@ -27,7 +27,7 @@ obligaciones/plazos/sanciones en JSON y lenguaje llano).
 flowchart LR
   subgraph Datos
     RAW[(Corpus JSONL estilo BOE<br/>data/raw)] --> EX[extract.py<br/>validación + estructura]
-    EX --> SYN[synthesize.py<br/>teacher litellm u --offline]
+    EX --> SYN[synthesize/<br/>teacher litellm u --offline]
     SYN --> FIL[filter.py<br/>dedup shingles+Jaccard<br/>heurísticas · LLM-judge opcional]
     FIL --> FMT[format.py<br/>chat messages · splits 90/5/5]
   end
@@ -63,6 +63,16 @@ flowchart LR
 - **Modo offline de la síntesis**: generadores determinísticos producen el
   dataset de muestra (40 ejemplos SFT + 15 pares DPO incluidos en el repo) sin
   API ni red — el smoke-train y los tests no dependen de ningún proveedor.
+  La síntesis es el paquete `src/adapterforge/data/synthesize/`, un módulo
+  por responsabilidad: `examples` (modelos `SftExample`/`DpoPair`, mezcla y
+  presupuesto), `text` (redacción en castellano), `detectors` (plazos,
+  obligaciones, sanciones y tramos validados), `window` (ventana estructural
+  dentro del presupuesto de tokens), `prompts` (pools de instrucciones y
+  plantillas del teacher), `offline` (generadores por tarea y `rebalance`),
+  `dpo` (pares chosen/rejected), `online` (teacher vía litellm) y `cli`.
+  El `__init__` reexporta la API pública, así que
+  `from adapterforge.data.synthesize import build_sft_offline` y
+  `python -m adapterforge.data.synthesize` siguen funcionando igual.
 - **Evaluación con dos niveles**: métricas deterministas propias (exact-match
   por campos, ROUGE-L) para el gate de CI, y juez LLM opcional para rúbricas.
 - **Serving dual**: vLLM `--enable-lora` (GPU, multi-adapter) y GGUF/Ollama
@@ -224,7 +234,7 @@ Dos niveles, ambos validados con pydantic:
 
 | Workflow | Disparador | Qué hace |
 |---|---|---|
-| `ci.yml` | push/PR | `ruff check` + `pytest` (núcleo sin GPU/red) en ubuntu-latest |
+| `ci.yml` | push a master / PR / manual | Workflow reutilizable [`jaisato/.github` python-ci](https://github.com/jaisato/.github): `ruff check` + `pytest` (Python 3.12, núcleo sin GPU/red) y `pip-audit` informativo; más `actionlint` sobre los cuatro workflows. Acciones ancladas a SHA (Dependabot las actualiza semanalmente) |
 | `smoke-train.yml` | PR que toca `train/**`, `configs/**`, Dockerfile o el sample SFT | Runner `[self-hosted, gpu]`: construye la imagen, ejecuta `make train-smoke` (30 pasos reales) y **verifica que la loss final < inicial** parseando `metrics.json` |
 | `release-hub.yml` | tag `v*` | Levanta vLLM con el adapter, corre `domain_bench` con `--min-score` como gate y, si pasa, publica en HF Hub con `HF_TOKEN` |
 | `deploy-hf.yml` | tag `v*` / manual | Sube `space/` al Space `Jaisato/adapterforge-demo` |
@@ -260,7 +270,7 @@ Buscables en el código como `TODO(jairo):`
 - **Weights & Biases** como tracking alternativo a MLflow (`train/common.py`).
 - **Corpus real de NormaRAG** (P1 del portfolio): conector a su Postgres/MinIO y
   mini-conector BOE standalone (`data/extract.py`).
-- **Pares de preferencia online** (teacher fuerte vs débil) para DPO (`data/synthesize.py`).
+- **Pares de preferencia online** (teacher fuerte vs débil) para DPO (`data/synthesize/dpo.py`).
 - **Carga dinámica de adapters** en vLLM y auth por API key (`serve/vllm_lora/README.md`).
 
 ## Estructura del repositorio
