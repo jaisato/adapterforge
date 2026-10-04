@@ -68,12 +68,20 @@ def test_data_pull_uses_the_dotenv_token(workdir: Path) -> None:
     _dotenv(workdir, "HF_TOKEN=hf-dotenv\n")
     seen: dict[str, object] = {}
 
+    def fake_list_remote(repo_id: str, **kwargs) -> list[tuple[str, int]]:
+        seen["list_token"] = kwargs["token"]
+        return [("data/processed/juristune-v6_train.jsonl", 1), ("data/raw/corpus_boe.jsonl", 1)]
+
     def fake_snapshot_download(**kwargs) -> str:
         seen["download_token"] = kwargs["token"]
+        for relative in kwargs["allow_patterns"]:
+            target = Path(kwargs["local_dir"]) / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("{}\n", encoding="utf-8")
         return kwargs["local_dir"]
 
-    pull.pull("v6", workdir / "out", downloader=fake_snapshot_download)
-    assert seen == {"download_token": "hf-dotenv"}
+    pull.pull("v6", workdir / "out", lister=fake_list_remote, downloader=fake_snapshot_download)
+    assert seen == {"list_token": "hf-dotenv", "download_token": "hf-dotenv"}
 
 
 def test_push_to_hub_uses_the_dotenv_token(
