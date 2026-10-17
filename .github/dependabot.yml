@@ -5,8 +5,8 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    # Una sola PR semanal con todas las acciones, como en jaisato/.github.
+      interval: monthly
+    # Una sola PR mensual con todas las acciones, como en jaisato/.github.
     groups:
       github-actions:
         patterns: ["*"]
