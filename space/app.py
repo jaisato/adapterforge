@@ -16,6 +16,9 @@ from llama_cpp import Llama
 GGUF_REPO = os.environ.get("AF_GGUF_REPO", "Jaisato/juristune-qwen3-4b-gguf")
 GGUF_FILE = os.environ.get("AF_GGUF_FILE", "juristune-q4_k_m.gguf")
 N_CTX = int(os.environ.get("AF_N_CTX", "2048"))
+MAX_TOKENS = 512
+# Margen por mensaje para los tokens de rol y separadores del chat template.
+_PER_MESSAGE_OVERHEAD = 8
 
 SYSTEM_PROMPT = (
     "Eres JurisTune, un asistente especializado en normativa española y de la "
@@ -57,17 +60,55 @@ def _text(content: str | list | dict) -> str:
     return "".join(texts)
 
 
+def _count_tokens(text: str) -> int:
+    return len(llm.tokenize(text.encode("utf-8"), add_bos=False, special=True))
+
+
+def _fit_context(messages: list[dict], count_tokens, budget: int) -> list[dict]:
+    """Descarta los turnos más antiguos hasta que el prompt quepa en ``budget``.
+
+    llama-cpp-python lanza ValueError en cuanto el prompt llena la ventana
+    (``N_CTX``): sin recortar, una conversación que pasaba de ~2048 tokens
+    (dos o tres extractos del BOE con sus respuestas) fallaba en todos los
+    turnos siguientes. El system y el último mensaje no se descartan nunca, y
+    el historial que queda empieza siempre por un turno del usuario.
+    """
+    system, turns = messages[0], messages[1:]
+
+    def total(msgs: list[dict]) -> int:
+        return sum(count_tokens(m["content"]) + _PER_MESSAGE_OVERHEAD for m in msgs)
+
+    while len(turns) > 1 and total([system, *turns]) > budget:
+        turns = turns[1:]
+        while len(turns) > 1 and turns[0]["role"] != "user":
+            turns = turns[1:]
+    return [system, *turns]
+
+
 def respond(message: str, history: list[dict]) -> str:
     """Genera la respuesta del adapter con el historial de la sesión."""
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for turn in history:
-        messages.append({"role": turn["role"], "content": _text(turn["content"])})
+        # El endpoint /chat es público: un historial con rol "system" enviado
+        # por API sustituiría las instrucciones del Space.
+        if turn.get("role") in ("user", "assistant"):
+            messages.append({"role": turn["role"], "content": _text(turn["content"])})
     messages.append({"role": "user", "content": message})
-    result = llm.create_chat_completion(
-        messages=messages,
-        temperature=0.3,
-        max_tokens=512,
-    )
+    messages = _fit_context(messages, _count_tokens, N_CTX - MAX_TOKENS)
+    try:
+        result = llm.create_chat_completion(
+            messages=messages,
+            temperature=0.3,
+            max_tokens=MAX_TOKENS,
+        )
+    except ValueError as exc:
+        # Solo queda el mensaje actual y aun así no cabe en la ventana.
+        if "context window" not in str(exc):
+            raise
+        return (
+            f"El texto es demasiado largo para esta demo en CPU (ventana de {N_CTX} "
+            "tokens). Prueba con un extracto más corto."
+        )
     return result["choices"][0]["message"]["content"]
 
 
