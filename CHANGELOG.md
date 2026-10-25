@@ -163,6 +163,9 @@ GGUF en `Jaisato/juristune-qwen3-4b-gguf`, que se publica aparte
   reutilizable de `jaisato/.github` se referencia por `@main`.
 - MLflow y vLLM se publican solo en loopback (`127.0.0.1`): ninguno
   autentica peticiones ([#7](https://github.com/jaisato/adapterforge/pull/7)).
+- MLflow 2.22.4 (antes 2.22.0) en la imagen del servidor y en la de
+  entrenamiento: corrige PYSEC-2025-52 y PYSEC-2026-1640 sin salir de la
+  serie 2.x; el resto de avisos de MLflow exige la serie 3.
 
 [Unreleased]: https://github.com/jaisato/adapterforge/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/jaisato/adapterforge/releases/tag/v0.1.0
