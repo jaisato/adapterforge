@@ -40,7 +40,7 @@ RUN pip install --upgrade pip==25.1.1 \
         bitsandbytes==0.46.1 \
         datasets==3.6.0 \
         accelerate==1.9.0 \
-        mlflow==2.22.0
+        mlflow==2.22.4
 
 # --- Unsloth fijado a la era torch 2.6/cu124 (pareja verificada) --------------
 RUN pip install "xformers==0.0.29.post3" \
