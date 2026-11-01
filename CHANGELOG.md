@@ -50,8 +50,14 @@ GGUF en `Jaisato/juristune-qwen3-4b-gguf`, que se publica aparte
   deterministas (exact-match por campos, containment, ROUGE-L), varios
   modelos intercalados por caso, `--repeats` con predicciones persistidas y
   `--min-score` como quality gate; informe before/after con IC 95 % del
-  delta pareado y regresiones robustas (`eval.report`); `scripts/lm_eval_runner.sh`
-  para lm-evaluation-harness.
+  delta pareado (media ± t·SE, t de Student con n−1 g.l. y 1.96 con n > 30;
+  por tipo de tarea solo con n ≥ 5), resumen JSON (`--json-output`) y gate de
+  regresiones caso a caso (`--fail-on-regression`, con `--regression-tolerance`
+  para las bajadas sin rangos de repeticiones; `FAIL_ON_REGRESSION=1|true|yes`
+  y `REGRESSION_TOLERANCE` en `make eval-pair`/`eval-report`) (`eval.report`,
+  [#18](https://github.com/jaisato/adapterforge/pull/18),
+  [#19](https://github.com/jaisato/adapterforge/pull/19));
+  `scripts/lm_eval_runner.sh` para lm-evaluation-harness.
 - Resultados de JurisTune v6 en el README con la evidencia versionada en
   `evals/results/v6/`: `results.json` del bench v2 del run final y del run
   base-vs-v6, informes, métricas de entrenamiento
