@@ -85,18 +85,22 @@ eval: ## Benchmark de dominio contra un endpoint OpenAI-compatible
 	$(PY) -m adapterforge.eval.domain_bench --bench $(BENCH) --api-base $(API_BASE) \
 		--model $(EVAL_MODEL) --repeats $(REPEATS) --output artifacts/eval/latest.json
 
-eval-pair: ## Before/after intercalado en una sesión (n=REPEATS por caso) + informe
+eval-pair: ## Before/after intercalado en una sesión (n=REPEATS por caso) + informe (FAIL_ON_REGRESSION=1 activa gate CI)
 	$(PY) -m adapterforge.eval.domain_bench --bench $(BENCH) --api-base $(API_BASE) \
 		--model $(BASE_MODEL) --model $(ADAPTER_MODEL) --repeats $(REPEATS) \
 		--output-dir artifacts/eval/pair
 	$(PY) -m adapterforge.eval.report \
 		--before artifacts/eval/pair/$(subst /,-,$(subst :,-,$(BASE_MODEL))).json \
 		--after artifacts/eval/pair/$(subst /,-,$(subst :,-,$(ADAPTER_MODEL))).json \
-		--output artifacts/eval/report_pair.md
+		--output artifacts/eval/report_pair.md \
+		--json-output artifacts/eval/report_pair.json \
+		$(if $(FAIL_ON_REGRESSION),--fail-on-regression,)
 
-eval-report: ## Informe before/after (requiere base.json y adapter.json previos)
+eval-report: ## Informe before/after (requiere base.json y adapter.json previos; FAIL_ON_REGRESSION=1 activa gate CI)
 	$(PY) -m adapterforge.eval.report --before artifacts/eval/base.json \
-		--after artifacts/eval/adapter.json --output artifacts/eval/report.md
+		--after artifacts/eval/adapter.json --output artifacts/eval/report.md \
+		--json-output artifacts/eval/report.json \
+		$(if $(FAIL_ON_REGRESSION),--fail-on-regression,)
 
 export: ## Merge + GGUF Q4_K_M + Modelfile de Ollama (ver serve/export_gguf.sh)
 	bash serve/export_gguf.sh
