@@ -5,9 +5,15 @@ Compara los ``results.json`` del modelo base ("before") y del adapter
 OpenAI-compatible configurable, y produce la tabla que va al README.
 
 Además de los deltas, el informe cuantifica la incertidumbre: delta medio
-pareado por caso con error estándar e IC 95 %, y — cuando los results.json
-traen repeticiones — marca qué regresiones son robustas (los rangos de
-score de before y after ni se solapan) frente a ruido de generación.
+pareado por caso con error estándar e IC 95 % (media ± t·SE, con el cuantil
+t de Student de n−1 grados de libertad; 1.96 con n > 30), global y por tipo
+de tarea (el IC por tipo solo con n ≥ 5), y — cuando los results.json traen
+repeticiones — marca qué regresiones son robustas (los rangos de score de
+before y after ni se solapan) frente a ruido de generación.
+
+El gate (``--fail-on-regression``) bloquea las regresiones robustas y, sin
+rangos de repeticiones, cualquier bajada mayor que ``--regression-tolerance``
+(0 por defecto: cualquier bajada bloquea).
 
 Uso::
 
@@ -48,24 +54,59 @@ def _delta(after: float, before: float) -> str:
     return f"{sign}{diff:.3f}"
 
 
-def _stats_from_deltas(deltas: list[float]) -> dict[str, float] | None:
-    if len(deltas) < 2:
+#: Cuantiles t de Student al 97.5 % (IC bilateral del 95 %) por grados de libertad.
+#: Con n ≥ 2 deltas hay n−1 g.l.; a partir de 30 g.l. se usa la normal (1.96).
+_T_975: dict[int, float] = {
+    1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365,
+    8: 2.306, 9: 2.262, 10: 2.228, 11: 2.201, 12: 2.179, 13: 2.160, 14: 2.145,
+    15: 2.131, 16: 2.120, 17: 2.110, 18: 2.101, 19: 2.093, 20: 2.086, 21: 2.080,
+    22: 2.074, 23: 2.069, 24: 2.064, 25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048,
+    29: 2.045,
+}  # fmt: skip
+_Z_975 = 1.96
+
+#: Deltas mínimos por tipo de tarea para mostrar un IC: por debajo, el cuantil t
+#: (12.7 con n=2, 4.3 con n=3) hace el intervalo tan ancho que no informa, y
+#: el 1.96 que se usaba antes lo hacía absurdamente estrecho.
+MIN_N_CI_BY_TYPE = 5
+
+
+def t_quantile(n: int) -> float:
+    """Cuantil del IC 95 % para ``n`` deltas pareados: t(0.975, n−1) si n ≤ 30, si no 1.96."""
+    if n < 2:
+        raise ValueError(f"hacen falta al menos 2 deltas para un IC (n={n})")
+    return _T_975.get(n - 1, _Z_975)
+
+
+def _stats_from_deltas(deltas: list[float], min_n_ci: int = 2) -> dict[str, float | None] | None:
+    """Media, SD, SE e IC 95 % de los deltas; None con menos de 2 deltas.
+
+    Con ``n < min_n_ci`` el IC se marca como insuficiente (``ci_low``/``ci_high``/
+    ``quantile`` a None) pero se devuelven n, media, SD y SE.
+    """
+    n = len(deltas)
+    if n < 2:
         return None
-    mean = sum(deltas) / len(deltas)
+    mean = sum(deltas) / n
     sd = statistics.stdev(deltas)
-    se = sd / math.sqrt(len(deltas))
-    return {
-        "n": len(deltas),
+    se = sd / math.sqrt(n)
+    stats: dict[str, float | None] = {
+        "n": n,
         "mean": mean,
         "sd": sd,
         "se": se,
-        "ci_low": mean - 1.96 * se,
-        "ci_high": mean + 1.96 * se,
+        "quantile": None,
+        "ci_low": None,
+        "ci_high": None,
     }
+    if n >= min_n_ci:
+        q = t_quantile(n)
+        stats.update(quantile=q, ci_low=mean - q * se, ci_high=mean + q * se)
+    return stats
 
 
-def paired_stats(before: dict[str, Any], after: dict[str, Any]) -> dict[str, float] | None:
-    """Delta medio pareado por caso, SD, SE e IC 95 % (normal)."""
+def paired_stats(before: dict[str, Any], after: dict[str, Any]) -> dict[str, float | None] | None:
+    """Delta medio pareado por caso, SD, SE e IC 95 % (t de Student; normal con n > 30)."""
     before_scores = {c["id"]: float(c["score"]) for c in before.get("cases", [])}
     deltas = [
         float(c["score"]) - before_scores[c["id"]]
@@ -77,8 +118,13 @@ def paired_stats(before: dict[str, Any], after: dict[str, Any]) -> dict[str, flo
 
 def paired_stats_by_type(
     before: dict[str, Any], after: dict[str, Any]
-) -> dict[str, dict[str, float]]:
-    """Estadísticas pareadas (media, SD, SE, IC 95 %) desglosadas por ``task_type``."""
+) -> dict[str, dict[str, float | None]]:
+    """Estadísticas pareadas (media, SD, SE, IC 95 %) desglosadas por ``task_type``.
+
+    El IC solo se calcula con al menos ``MIN_N_CI_BY_TYPE`` deltas del tipo; con
+    menos se devuelven n y media con el IC a None (el informe lo marca como
+    insuficiente).
+    """
     before_cases = {c["id"]: c for c in before.get("cases", [])}
     deltas_by_type: dict[str, list[float]] = {}
     for case in after.get("cases", []):
@@ -89,9 +135,9 @@ def paired_stats_by_type(
         delta = float(case["score"]) - float(base_case["score"])
         deltas_by_type.setdefault(task_type, []).append(delta)
 
-    result: dict[str, dict[str, float]] = {}
+    result: dict[str, dict[str, float | None]] = {}
     for task_type in sorted(deltas_by_type):
-        stats = _stats_from_deltas(deltas_by_type[task_type])
+        stats = _stats_from_deltas(deltas_by_type[task_type], min_n_ci=MIN_N_CI_BY_TYPE)
         if stats is not None:
             result[task_type] = stats
     return result
@@ -104,12 +150,25 @@ def _case_range(case: dict[str, Any]) -> tuple[float, float] | None:
     return None
 
 
-def _regressions(before: dict[str, Any], after: dict[str, Any]) -> list[dict[str, Any]]:
+def _blocks_gate(regression: dict[str, Any], tolerance: float) -> bool:
+    """Si la regresión bloquea el gate: robusta, o sin rangos y mayor que la tolerancia."""
+    if regression["robust"] is True:
+        return True
+    if regression["robust"] is None:
+        return regression["before"] - regression["after"] > tolerance + 1e-9
+    return False
+
+
+def _regressions(
+    before: dict[str, Any], after: dict[str, Any], tolerance: float = 0.0
+) -> list[dict[str, Any]]:
     """Casos emparejados que puntúan peor con el adapter, en el orden de ``after``.
 
     ``robust`` es True si los rangos de las repeticiones no se solapan (no es
     ruido de generación), False si se solapan y None si alguno de los dos
-    results.json no trae rangos. Fuente única para el markdown y el JSON.
+    results.json no trae rangos. ``blocking`` dice si la regresión para el gate:
+    las robustas siempre; las que no tienen rangos, solo si la bajada supera
+    ``tolerance``. Fuente única para el markdown y el JSON.
     """
     before_cases = {c["id"]: c for c in before.get("cases", [])}
     regressions: list[dict[str, Any]] = []
@@ -126,15 +185,15 @@ def _regressions(before: dict[str, Any], after: dict[str, Any]) -> list[dict[str
         robust: bool | None = None
         if b_range and a_range:
             robust = a_range[1] < b_range[0] - 1e-9  # rangos disjuntos: no es ruido
-        regressions.append(
-            {
-                "id": case["id"],
-                "task_type": str(case.get("task_type") or base_case.get("task_type") or "unknown"),
-                "before": b_score,
-                "after": a_score,
-                "robust": robust,
-            }
-        )
+        regression = {
+            "id": case["id"],
+            "task_type": str(case.get("task_type") or base_case.get("task_type") or "unknown"),
+            "before": b_score,
+            "after": a_score,
+            "robust": robust,
+        }
+        regression["blocking"] = _blocks_gate(regression, tolerance)
+        regressions.append(regression)
     return regressions
 
 
@@ -154,7 +213,21 @@ def _unmatched(before: dict[str, Any], after: dict[str, Any]) -> tuple[list[str]
     )
 
 
-def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
+def _ci(stats: dict[str, float | None]) -> tuple[float, float]:
+    """(ci_low, ci_high) como floats; solo para estadísticas con IC calculado."""
+    ci_low, ci_high = stats["ci_low"], stats["ci_high"]
+    assert ci_low is not None and ci_high is not None
+    return ci_low, ci_high
+
+
+def _quantile_label(stats: dict[str, float | None]) -> str:
+    n = int(stats["n"] or 0)
+    return f"t de Student, {n - 1} g.l." if n - 1 in _T_975 else "normal"
+
+
+def build_report(
+    before: dict[str, Any], after: dict[str, Any], regression_tolerance: float = 0.0
+) -> str:
     """Construye el informe markdown before/after."""
     lines = [
         "# Informe de evaluación — before/after",
@@ -190,14 +263,16 @@ def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
 
     stats = paired_stats(before, after)
     if stats:
-        includes_zero = stats["ci_low"] <= 0.0 <= stats["ci_high"]
+        ci_low, ci_high = _ci(stats)
+        includes_zero = ci_low <= 0.0 <= ci_high
         lines += [
             "",
             "## Incertidumbre (deltas pareados por caso)",
             "",
             f"- Delta medio: {_delta(stats['mean'], 0.0)} · SD {stats['sd']:.3f} · "
             f"SE {stats['se']:.3f} (n={stats['n']})",
-            f"- IC 95 %: ({stats['ci_low']:+.3f}, {stats['ci_high']:+.3f})",
+            f"- IC 95 %: ({ci_low:+.3f}, {ci_high:+.3f}) — media ± {stats['quantile']:.3f}·SE "
+            f"({_quantile_label(stats)})",
         ]
         if includes_zero:
             lines.append(
@@ -218,12 +293,21 @@ def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
             "|---|---:|---:|---:|",
         ]
         for task_type, tstats in by_type_stats.items():
-            ci_str = f"({tstats['ci_low']:+.3f}, {tstats['ci_high']:+.3f})"
+            if tstats["ci_low"] is None:
+                ci_str = f"insuficiente (n < {MIN_N_CI_BY_TYPE})"
+            else:
+                ci_low, ci_high = _ci(tstats)
+                ci_str = f"({ci_low:+.3f}, {ci_high:+.3f})"
             lines.append(
                 f"| {task_type} | {int(tstats['n'])} | {_delta(tstats['mean'], 0.0)} | {ci_str} |"
             )
+        lines += [
+            "",
+            f"IC = media ± t(0.975, n−1)·SE (1.96 con n > 30); con menos de {MIN_N_CI_BY_TYPE} "
+            "casos del tipo no se muestra.",
+        ]
 
-    regressions = _regressions(before, after)
+    regressions = _regressions(before, after, regression_tolerance)
     has_ranges = any(r["robust"] is not None for r in regressions)
 
     lines += ["", "## Regresiones por caso", ""]
@@ -234,10 +318,20 @@ def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
             flag = "?" if robust is None else ("sí" if robust else "no (solapa)")
             lines.append(f"| {r['id']} | {_fmt(r['before'])} | {_fmt(r['after'])} | {flag} |")
     elif regressions:
-        lines += ["| Caso | Before | After |", "|---|---:|---:|"]
+        lines += ["| Caso | Before | After | Delta |", "|---|---:|---:|---:|"]
         lines += [
-            f"| {r['id']} | {_fmt(r['before'])} | {_fmt(r['after'])} |" for r in regressions
+            f"| {r['id']} | {_fmt(r['before'])} | {_fmt(r['after'])} "
+            f"| {_delta(r['after'], r['before'])} |"
+            for r in regressions
         ]
+        if regression_tolerance > 0:
+            within = sum(1 for r in regressions if not r["blocking"])
+            lines += [
+                "",
+                f"Sin rangos de repeticiones: una bajada de hasta {regression_tolerance:.3f} "
+                f"no bloquea el gate (`--regression-tolerance`); {within} de {len(regressions)} "
+                "regresión(es) dentro de la tolerancia.",
+            ]
     else:
         lines.append("Sin regresiones: ningún caso puntúa peor con el adapter.")
 
@@ -267,7 +361,9 @@ def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def build_summary_json(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+def build_summary_json(
+    before: dict[str, Any], after: dict[str, Any], regression_tolerance: float = 0.0
+) -> dict[str, Any]:
     """Construye un resumen estructurado JSON para CI gates y automatización."""
     regressions = [
         {
@@ -277,8 +373,9 @@ def build_summary_json(before: dict[str, Any], after: dict[str, Any]) -> dict[st
             "after": round(r["after"], 4),
             "delta": round(r["after"] - r["before"], 4),
             "robust": r["robust"],
+            "blocking": r["blocking"],
         }
-        for r in _regressions(before, after)
+        for r in _regressions(before, after, regression_tolerance)
     ]
     only_before, only_after = _unmatched(before, after)
     b_overall = float(before["summary"].get("overall", 0.0))
@@ -294,6 +391,8 @@ def build_summary_json(before: dict[str, Any], after: dict[str, Any]) -> dict[st
         "regressions": regressions,
         "regression_count": len(regressions),
         "robust_regression_count": sum(1 for r in regressions if r["robust"] is True),
+        "regression_tolerance": regression_tolerance,
+        "blocking_regression_count": sum(1 for r in regressions if r["blocking"]),
         "unmatched_before": only_before,
         "unmatched_after": only_after,
     }
@@ -311,21 +410,35 @@ def main(argv: list[str] | None = None) -> int:
         "--fail-on-regression",
         action="store_true",
         help=(
-            "Devuelve código de salida 1 si hay regresiones robustas (o regresiones sin "
-            "rangos) o si hay casos de before que no están en after"
+            "Devuelve código de salida 1 si hay regresiones robustas (rangos de repeticiones "
+            "disjuntos), regresiones sin rangos que superen --regression-tolerance, o casos "
+            "de before que no están en after"
+        ),
+    )
+    parser.add_argument(
+        "--regression-tolerance",
+        type=float,
+        default=0.0,
+        metavar="FLOAT",
+        help=(
+            "Bajada máxima de score por caso que el gate tolera cuando los results.json no "
+            "traen rangos de repeticiones (sin --repeats). Por defecto 0.0: cualquier bajada "
+            "bloquea. No afecta a las regresiones robustas, que bloquean siempre"
         ),
     )
     args = parser.parse_args(argv)
+    if args.regression_tolerance < 0:
+        parser.error("--regression-tolerance debe ser >= 0")
 
     before_data = _load_results(args.before)
     after_data = _load_results(args.after)
-    report = build_report(before_data, after_data)
+    report = build_report(before_data, after_data, args.regression_tolerance)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(report, encoding="utf-8")
     print(f"[report] informe escrito en {output_path}")
 
-    summary = build_summary_json(before_data, after_data)
+    summary = build_summary_json(before_data, after_data, args.regression_tolerance)
     if args.json_output:
         json_path = Path(args.json_output)
         json_path.parent.mkdir(parents=True, exist_ok=True)
@@ -335,7 +448,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[report] resumen JSON escrito en {json_path}")
 
     if args.fail_on_regression:
-        blocking = [r["id"] for r in summary["regressions"] if r["robust"] in (True, None)]
+        blocking = [r["id"] for r in summary["regressions"] if r["blocking"]]
         if blocking:
             print(f"[report] GATE: {len(blocking)} regresión(es) bloqueante(s): {blocking}")
             return 1

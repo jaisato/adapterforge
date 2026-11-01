@@ -12,6 +12,14 @@ ADAPTER_MODEL ?= juristune-v6-eval
 REPEATS ?= 3
 BENCH ?= evals/domain_bench_v2.jsonl
 DATA_VERSION ?= v6
+# Gate de regresiones de eval-pair/eval-report: solo 1, true o yes lo activan
+# (`$(if $(FAIL_ON_REGRESSION),...)` lo activaba con cualquier valor, también 0).
+FAIL_ON_REGRESSION ?=
+GATE_FLAG = $(if $(filter 1 true yes,$(FAIL_ON_REGRESSION)),--fail-on-regression,)
+# Bajada máxima por caso que tolera el gate cuando no hay rangos de repeticiones
+# (vacío = 0.0: cualquier bajada bloquea). Ver `python -m adapterforge.eval.report --help`.
+REGRESSION_TOLERANCE ?=
+TOLERANCE_FLAG = $(if $(REGRESSION_TOLERANCE),--regression-tolerance $(REGRESSION_TOLERANCE),)
 
 .PHONY: help data data-pull data-v6 data-v6-teacher train train-smoke train-v3 train-v4 train-v5 train-v6 dpo eval eval-pair eval-report export test lint mlflow clean
 
@@ -85,7 +93,7 @@ eval: ## Benchmark de dominio contra un endpoint OpenAI-compatible
 	$(PY) -m adapterforge.eval.domain_bench --bench $(BENCH) --api-base $(API_BASE) \
 		--model $(EVAL_MODEL) --repeats $(REPEATS) --output artifacts/eval/latest.json
 
-eval-pair: ## Before/after intercalado en una sesión (n=REPEATS por caso) + informe (FAIL_ON_REGRESSION=1 activa gate CI)
+eval-pair: ## Before/after intercalado en una sesión (n=REPEATS por caso) + informe (FAIL_ON_REGRESSION=1|true|yes activa el gate; REGRESSION_TOLERANCE=0.02 tolera bajadas sin rangos)
 	$(PY) -m adapterforge.eval.domain_bench --bench $(BENCH) --api-base $(API_BASE) \
 		--model $(BASE_MODEL) --model $(ADAPTER_MODEL) --repeats $(REPEATS) \
 		--output-dir artifacts/eval/pair
@@ -94,13 +102,13 @@ eval-pair: ## Before/after intercalado en una sesión (n=REPEATS por caso) + inf
 		--after artifacts/eval/pair/$(subst /,-,$(subst :,-,$(ADAPTER_MODEL))).json \
 		--output artifacts/eval/report_pair.md \
 		--json-output artifacts/eval/report_pair.json \
-		$(if $(FAIL_ON_REGRESSION),--fail-on-regression,)
+		$(GATE_FLAG) $(TOLERANCE_FLAG)
 
-eval-report: ## Informe before/after (requiere base.json y adapter.json previos; FAIL_ON_REGRESSION=1 activa gate CI)
+eval-report: ## Informe before/after (requiere base.json y adapter.json previos; FAIL_ON_REGRESSION=1|true|yes activa el gate; REGRESSION_TOLERANCE=0.02 tolera bajadas sin rangos)
 	$(PY) -m adapterforge.eval.report --before artifacts/eval/base.json \
 		--after artifacts/eval/adapter.json --output artifacts/eval/report.md \
 		--json-output artifacts/eval/report.json \
-		$(if $(FAIL_ON_REGRESSION),--fail-on-regression,)
+		$(GATE_FLAG) $(TOLERANCE_FLAG)
 
 export: ## Merge + GGUF Q4_K_M + Modelfile de Ollama (ver serve/export_gguf.sh)
 	bash serve/export_gguf.sh

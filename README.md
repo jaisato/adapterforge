@@ -336,13 +336,18 @@ Dos niveles, ambos validados con pydantic:
   varios `--model` intercalados por caso y `--repeats` n) o contra un fichero
   de predicciones (`--predictions`), con `--min-score` como quality gate.
 - **Informe before/after** (`eval/report.py`): tabla por tipo de tarea con
-  deltas, **IC 95 % bootstrap del delta pareado global y desglosado por tipo de
-  tarea** (`paired_stats_by_type`: `extract`, `qa`, `resumen`), exportación
-  estructurada (`--json-output`) y **gate de regresión caso a caso**
-  (`--fail-on-regression` / `FAIL_ON_REGRESSION=1 make eval-report`, que termina
-  con código `1` si existe alguna regresión robusta con rangos de repeticiones
-  disjuntos o alguna regresión sin datos de rango); es la tabla que acompaña
-  cada release.
+  deltas, **IC 95 % del delta pareado por caso** (media ± t·SE, con el cuantil
+  t de Student de n−1 grados de libertad y 1.96 a partir de 30 g.l.; no es un
+  bootstrap) global y desglosado por tipo de tarea (`paired_stats_by_type`:
+  `extract`, `qa`, `resumen`; el IC por tipo solo se muestra con n ≥ 5 casos,
+  por debajo el informe lo marca como insuficiente), exportación estructurada
+  (`--json-output`) y **gate de regresión caso a caso** (`--fail-on-regression`
+  / `FAIL_ON_REGRESSION=1 make eval-report`; solo `1`, `true` o `yes` activan el
+  gate, `FAIL_ON_REGRESSION=0` no), que termina con código `1` si existe alguna
+  regresión robusta (rangos de repeticiones disjuntos), alguna regresión sin
+  datos de rango que baje más de `--regression-tolerance` (por defecto `0.0`:
+  cualquier bajada bloquea; `REGRESSION_TOLERANCE=0.02 make eval-report`) o
+  algún caso de before ausente en after; es la tabla que acompaña cada release.
   Los `results.json` y el informe de la v6 están versionados en
   `evals/results/v6/`.
 - **Capacidades generales** (`scripts/lm_eval_runner.sh`, grupo opcional
