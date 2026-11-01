@@ -21,10 +21,10 @@ keywords = ["qlora", "lora", "fine-tuning", "trl", "peft", "llm", "boe"]
 dependencies = [
     # Núcleo mínimo: validación de configs, YAML, cliente LLM y HTTP.
     "pydantic>=2.7,<3",
-    "pydantic-settings>=2.2,<3",
+    "pydantic-settings>=2.14.2,<3",
     "pyyaml>=6.0,<7",
     "httpx>=0.27,<1",
-    "litellm>=1.48,<2",
+    "litellm>=1.106.6,<2",
 ]
 
 [project.urls]
@@ -36,7 +36,7 @@ Repository = "https://github.com/jaisato/adapterforge"
 dev = [
     "pytest>=9.0.3,<10",
     "ruff>=0.6,<1",
-    "respx>=0.21,<1",
+    "respx>=0.22,<1",
 ]
 # Entrenamiento QLoRA (solo dentro del contenedor docker/Dockerfile.train o en
 # un entorno WSL2 con CUDA). Instalar torch con el índice CUDA adecuado:
