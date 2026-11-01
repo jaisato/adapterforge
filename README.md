@@ -336,8 +336,13 @@ Dos niveles, ambos validados con pydantic:
   varios `--model` intercalados por caso y `--repeats` n) o contra un fichero
   de predicciones (`--predictions`), con `--min-score` como quality gate.
 - **Informe before/after** (`eval/report.py`): tabla por tipo de tarea con
-  deltas, IC 95 % del delta pareado por caso y regresiones caso a caso
-  (robustas o ruido de generación); es la tabla que acompaña cada release.
+  deltas, **IC 95 % bootstrap del delta pareado global y desglosado por tipo de
+  tarea** (`paired_stats_by_type`: `extract`, `qa`, `resumen`), exportación
+  estructurada (`--json-output`) y **gate de regresión caso a caso**
+  (`--fail-on-regression` / `FAIL_ON_REGRESSION=1 make eval-report`, que termina
+  con código `1` si existe alguna regresión robusta con rangos de repeticiones
+  disjuntos o alguna regresión sin datos de rango); es la tabla que acompaña
+  cada release.
   Los `results.json` y el informe de la v6 están versionados en
   `evals/results/v6/`.
 - **Capacidades generales** (`scripts/lm_eval_runner.sh`, grupo opcional
