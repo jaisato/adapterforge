@@ -104,6 +104,56 @@ def _case_range(case: dict[str, Any]) -> tuple[float, float] | None:
     return None
 
 
+def _regressions(before: dict[str, Any], after: dict[str, Any]) -> list[dict[str, Any]]:
+    """Casos emparejados que puntúan peor con el adapter, en el orden de ``after``.
+
+    ``robust`` es True si los rangos de las repeticiones no se solapan (no es
+    ruido de generación), False si se solapan y None si alguno de los dos
+    results.json no trae rangos. Fuente única para el markdown y el JSON.
+    """
+    before_cases = {c["id"]: c for c in before.get("cases", [])}
+    regressions: list[dict[str, Any]] = []
+    for case in after.get("cases", []):
+        base_case = before_cases.get(case["id"])
+        if base_case is None:
+            continue
+        b_score = float(base_case["score"])
+        a_score = float(case["score"])
+        if a_score >= b_score - 1e-9:
+            continue
+        b_range = _case_range(base_case)
+        a_range = _case_range(case)
+        robust: bool | None = None
+        if b_range and a_range:
+            robust = a_range[1] < b_range[0] - 1e-9  # rangos disjuntos: no es ruido
+        regressions.append(
+            {
+                "id": case["id"],
+                "task_type": str(case.get("task_type") or base_case.get("task_type") or "unknown"),
+                "before": b_score,
+                "after": a_score,
+                "robust": robust,
+            }
+        )
+    return regressions
+
+
+def _unmatched(before: dict[str, Any], after: dict[str, Any]) -> tuple[list[str], list[str]]:
+    """Ids solo en ``before`` y solo en ``after`` (results de benches distintos).
+
+    Las estadísticas pareadas y las regresiones ignoran estos casos: sin
+    contarlos, un ``after`` evaluado contra otra versión del bench (o sin la
+    mitad de los casos) pasaba el gate sin regresiones.
+    """
+    before_ids = [str(c["id"]) for c in before.get("cases", [])]
+    after_ids = [str(c["id"]) for c in after.get("cases", [])]
+    after_set, before_set = set(after_ids), set(before_ids)
+    return (
+        [cid for cid in before_ids if cid not in after_set],
+        [cid for cid in after_ids if cid not in before_set],
+    )
+
+
 def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
     """Construye el informe markdown before/after."""
     lines = [
@@ -173,36 +223,38 @@ def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
                 f"| {task_type} | {int(tstats['n'])} | {_delta(tstats['mean'], 0.0)} | {ci_str} |"
             )
 
-    before_cases = {c["id"]: c for c in before.get("cases", [])}
-    regressions = []
-    has_ranges = False
-    for case in after.get("cases", []):
-        base_case = before_cases.get(case["id"])
-        if base_case is None:
-            continue
-        b_score = float(base_case["score"])
-        a_score = float(case["score"])
-        if a_score >= b_score - 1e-9:
-            continue
-        b_range = _case_range(base_case)
-        a_range = _case_range(case)
-        robust = None
-        if b_range and a_range:
-            has_ranges = True
-            robust = a_range[1] < b_range[0] - 1e-9  # rangos disjuntos: no es ruido
-        regressions.append((case["id"], b_score, a_score, robust))
+    regressions = _regressions(before, after)
+    has_ranges = any(r["robust"] is not None for r in regressions)
 
     lines += ["", "## Regresiones por caso", ""]
     if regressions and has_ranges:
         lines += ["| Caso | Before | After | ¿Robusta? |", "|---|---:|---:|---|"]
-        for cid, b, a, robust in regressions:
+        for r in regressions:
+            robust = r["robust"]
             flag = "?" if robust is None else ("sí" if robust else "no (solapa)")
-            lines.append(f"| {cid} | {_fmt(b)} | {_fmt(a)} | {flag} |")
+            lines.append(f"| {r['id']} | {_fmt(r['before'])} | {_fmt(r['after'])} | {flag} |")
     elif regressions:
         lines += ["| Caso | Before | After |", "|---|---:|---:|"]
-        lines += [f"| {cid} | {_fmt(b)} | {_fmt(a)} |" for cid, b, a, _ in regressions]
+        lines += [
+            f"| {r['id']} | {_fmt(r['before'])} | {_fmt(r['after'])} |" for r in regressions
+        ]
     else:
         lines.append("Sin regresiones: ningún caso puntúa peor con el adapter.")
+
+    only_before, only_after = _unmatched(before, after)
+    if only_before or only_after:
+        lines += [
+            "",
+            "## Casos sin pareja",
+            "",
+            "> ⚠️ Los dos results.json no cubren los mismos casos (¿benches distintos?): "
+            "estos casos quedan fuera de los deltas pareados y de las regresiones.",
+            "",
+        ]
+        if only_before:
+            lines.append(f"- Solo en before ({len(only_before)}): {', '.join(only_before)}")
+        if only_after:
+            lines.append(f"- Solo en after ({len(only_after)}): {', '.join(only_after)}")
     lines += [
         "",
         "> Generado con `python -m adapterforge.eval.report`. Métricas: "
@@ -217,31 +269,18 @@ def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
 
 def build_summary_json(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
     """Construye un resumen estructurado JSON para CI gates y automatización."""
-    before_cases = {c["id"]: c for c in before.get("cases", [])}
-    regressions: list[dict[str, Any]] = []
-    for case in after.get("cases", []):
-        base_case = before_cases.get(case["id"])
-        if base_case is None:
-            continue
-        b_score = float(base_case["score"])
-        a_score = float(case["score"])
-        if a_score >= b_score - 1e-9:
-            continue
-        b_range = _case_range(base_case)
-        a_range = _case_range(case)
-        robust: bool | None = None
-        if b_range and a_range:
-            robust = a_range[1] < b_range[0] - 1e-9
-        regressions.append(
-            {
-                "id": case["id"],
-                "task_type": str(case.get("task_type") or base_case.get("task_type") or "unknown"),
-                "before": round(b_score, 4),
-                "after": round(a_score, 4),
-                "delta": round(a_score - b_score, 4),
-                "robust": robust,
-            }
-        )
+    regressions = [
+        {
+            "id": r["id"],
+            "task_type": r["task_type"],
+            "before": round(r["before"], 4),
+            "after": round(r["after"], 4),
+            "delta": round(r["after"] - r["before"], 4),
+            "robust": r["robust"],
+        }
+        for r in _regressions(before, after)
+    ]
+    only_before, only_after = _unmatched(before, after)
     b_overall = float(before["summary"].get("overall", 0.0))
     a_overall = float(after["summary"].get("overall", 0.0))
     return {
@@ -255,6 +294,8 @@ def build_summary_json(before: dict[str, Any], after: dict[str, Any]) -> dict[st
         "regressions": regressions,
         "regression_count": len(regressions),
         "robust_regression_count": sum(1 for r in regressions if r["robust"] is True),
+        "unmatched_before": only_before,
+        "unmatched_after": only_after,
     }
 
 
@@ -269,7 +310,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--fail-on-regression",
         action="store_true",
-        help="Devuelve código de salida 1 si hay regresiones robustas (o regresiones sin rangos)",
+        help=(
+            "Devuelve código de salida 1 si hay regresiones robustas (o regresiones sin "
+            "rangos) o si hay casos de before que no están en after"
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -291,8 +335,16 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[report] resumen JSON escrito en {json_path}")
 
     if args.fail_on_regression:
-        has_blocking = any(r["robust"] in (True, None) for r in summary["regressions"])
-        if has_blocking:
+        blocking = [r["id"] for r in summary["regressions"] if r["robust"] in (True, None)]
+        if blocking:
+            print(f"[report] GATE: {len(blocking)} regresión(es) bloqueante(s): {blocking}")
+            return 1
+        if summary["unmatched_before"]:
+            # Un caso que el adapter no ha corrido no puede contar como «sin regresión».
+            print(
+                f"[report] GATE: {len(summary['unmatched_before'])} caso(s) de before "
+                f"ausentes en after: {summary['unmatched_before']}"
+            )
             return 1
     return 0
 

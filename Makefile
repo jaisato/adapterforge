@@ -92,7 +92,7 @@ eval-pair: ## Before/after intercalado en una sesión (n=REPEATS por caso) + inf
 	$(PY) -m adapterforge.eval.report \
 		--before artifacts/eval/pair/$(subst /,-,$(subst :,-,$(BASE_MODEL))).json \
 		--after artifacts/eval/pair/$(subst /,-,$(subst :,-,$(ADAPTER_MODEL))).json \
-		--output artifacts/eval/report_pair.md
+		--output artifacts/eval/report_pair.md --json-output artifacts/eval/report_pair.json
 
 eval-report: ## Informe before/after (requiere base.json y adapter.json previos)
 	$(PY) -m adapterforge.eval.report --before artifacts/eval/base.json \

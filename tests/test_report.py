@@ -113,3 +113,48 @@ def test_paired_stats_by_type_and_cli_json_gate(tmp_path):
     assert rc == 1
     assert out_md.exists() and "### Incertidumbre por tipo de tarea" in out_md.read_text("utf-8")
     assert json.loads(out_json.read_text("utf-8"))["regression_count"] == 1
+
+
+def _cli(tmp_path, before: dict, after: dict) -> tuple[int, dict]:
+    import json
+
+    b_file, a_file = tmp_path / "before.json", tmp_path / "after.json"
+    b_file.write_text(json.dumps(before), encoding="utf-8")
+    a_file.write_text(json.dumps(after), encoding="utf-8")
+    out_json = tmp_path / "summary.json"
+    rc = main(
+        [
+            "--before", str(b_file), "--after", str(a_file),
+            "--output", str(tmp_path / "report.md"), "--json-output", str(out_json),
+            "--fail-on-regression",
+        ]
+    )
+    return rc, json.loads(out_json.read_text("utf-8"))
+
+
+def test_gate_falla_si_after_no_cubre_los_casos_de_before(tmp_path):
+    """Sin regresiones entre los emparejados, pero el adapter no corrió c2 ni c3."""
+    before = _results("base", 0.5, 0.5, case_scores={"c1": 0.5, "c2": 0.9, "c3": 0.9})
+    after = _results("adapter", 0.9, 0.9, case_scores={"c1": 0.9, "c4": 0.1})
+    rc, summary = _cli(tmp_path, before, after)
+    assert summary["regression_count"] == 0
+    assert summary["unmatched_before"] == ["c2", "c3"]
+    assert summary["unmatched_after"] == ["c4"]
+    assert rc == 1
+    report = (tmp_path / "report.md").read_text("utf-8")
+    assert "## Casos sin pareja" in report
+    assert "Solo en before (2): c2, c3" in report
+
+
+def test_gate_no_bloquea_regresiones_que_solapan_con_el_ruido(tmp_path):
+    before = _results("base", 0.5, 0.5, case_scores={"c1": 0.8})
+    after = _results("adapter", 0.5, 0.5, case_scores={"c1": 0.7})
+    before["cases"][0].update(score_min=0.6, score_max=1.0)
+    after["cases"][0].update(score_min=0.5, score_max=0.9)
+    rc, summary = _cli(tmp_path, before, after)
+    assert summary["regressions"][0]["robust"] is False
+    assert summary["unmatched_before"] == [] and summary["unmatched_after"] == []
+    assert rc == 0
+    report = (tmp_path / "report.md").read_text("utf-8")
+    assert "| c1 | 0.800 | 0.700 | no (solapa) |" in report
+    assert "Casos sin pareja" not in report
