@@ -48,14 +48,7 @@ def _delta(after: float, before: float) -> str:
     return f"{sign}{diff:.3f}"
 
 
-def paired_stats(before: dict[str, Any], after: dict[str, Any]) -> dict[str, float] | None:
-    """Delta medio pareado por caso, SD, SE e IC 95 % (normal)."""
-    before_scores = {c["id"]: float(c["score"]) for c in before.get("cases", [])}
-    deltas = [
-        float(c["score"]) - before_scores[c["id"]]
-        for c in after.get("cases", [])
-        if c["id"] in before_scores
-    ]
+def _stats_from_deltas(deltas: list[float]) -> dict[str, float] | None:
     if len(deltas) < 2:
         return None
     mean = sum(deltas) / len(deltas)
@@ -69,6 +62,39 @@ def paired_stats(before: dict[str, Any], after: dict[str, Any]) -> dict[str, flo
         "ci_low": mean - 1.96 * se,
         "ci_high": mean + 1.96 * se,
     }
+
+
+def paired_stats(before: dict[str, Any], after: dict[str, Any]) -> dict[str, float] | None:
+    """Delta medio pareado por caso, SD, SE e IC 95 % (normal)."""
+    before_scores = {c["id"]: float(c["score"]) for c in before.get("cases", [])}
+    deltas = [
+        float(c["score"]) - before_scores[c["id"]]
+        for c in after.get("cases", [])
+        if c["id"] in before_scores
+    ]
+    return _stats_from_deltas(deltas)
+
+
+def paired_stats_by_type(
+    before: dict[str, Any], after: dict[str, Any]
+) -> dict[str, dict[str, float]]:
+    """Estadísticas pareadas (media, SD, SE, IC 95 %) desglosadas por ``task_type``."""
+    before_cases = {c["id"]: c for c in before.get("cases", [])}
+    deltas_by_type: dict[str, list[float]] = {}
+    for case in after.get("cases", []):
+        base_case = before_cases.get(case["id"])
+        if base_case is None:
+            continue
+        task_type = str(case.get("task_type") or base_case.get("task_type") or "unknown")
+        delta = float(case["score"]) - float(base_case["score"])
+        deltas_by_type.setdefault(task_type, []).append(delta)
+
+    result: dict[str, dict[str, float]] = {}
+    for task_type in sorted(deltas_by_type):
+        stats = _stats_from_deltas(deltas_by_type[task_type])
+        if stats is not None:
+            result[task_type] = stats
+    return result
 
 
 def _case_range(case: dict[str, Any]) -> tuple[float, float] | None:
@@ -132,6 +158,21 @@ def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
             direction = "mejora" if stats["mean"] > 0 else "empeora"
             lines.append(f"- El IC excluye 0: el adapter {direction} de forma significativa.")
 
+    by_type_stats = paired_stats_by_type(before, after)
+    if by_type_stats:
+        lines += [
+            "",
+            "### Incertidumbre por tipo de tarea",
+            "",
+            "| Tipo | n | Delta medio | IC 95 % |",
+            "|---|---:|---:|---:|",
+        ]
+        for task_type, tstats in by_type_stats.items():
+            ci_str = f"({tstats['ci_low']:+.3f}, {tstats['ci_high']:+.3f})"
+            lines.append(
+                f"| {task_type} | {int(tstats['n'])} | {_delta(tstats['mean'], 0.0)} | {ci_str} |"
+            )
+
     before_cases = {c["id"]: c for c in before.get("cases", [])}
     regressions = []
     has_ranges = False
@@ -174,18 +215,85 @@ def build_report(before: dict[str, Any], after: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def build_summary_json(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    """Construye un resumen estructurado JSON para CI gates y automatización."""
+    before_cases = {c["id"]: c for c in before.get("cases", [])}
+    regressions: list[dict[str, Any]] = []
+    for case in after.get("cases", []):
+        base_case = before_cases.get(case["id"])
+        if base_case is None:
+            continue
+        b_score = float(base_case["score"])
+        a_score = float(case["score"])
+        if a_score >= b_score - 1e-9:
+            continue
+        b_range = _case_range(base_case)
+        a_range = _case_range(case)
+        robust: bool | None = None
+        if b_range and a_range:
+            robust = a_range[1] < b_range[0] - 1e-9
+        regressions.append(
+            {
+                "id": case["id"],
+                "task_type": str(case.get("task_type") or base_case.get("task_type") or "unknown"),
+                "before": round(b_score, 4),
+                "after": round(a_score, 4),
+                "delta": round(a_score - b_score, 4),
+                "robust": robust,
+            }
+        )
+    b_overall = float(before["summary"].get("overall", 0.0))
+    a_overall = float(after["summary"].get("overall", 0.0))
+    return {
+        "before_model": before.get("model", "?"),
+        "after_model": after.get("model", "?"),
+        "overall_before": round(b_overall, 4),
+        "overall_after": round(a_overall, 4),
+        "overall_delta": round(a_overall - b_overall, 4),
+        "paired_stats": paired_stats(before, after),
+        "paired_stats_by_type": paired_stats_by_type(before, after),
+        "regressions": regressions,
+        "regression_count": len(regressions),
+        "robust_regression_count": sum(1 for r in regressions if r["robust"] is True),
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Informe before/after del benchmark")
     parser.add_argument("--before", required=True, help="results.json del modelo base")
     parser.add_argument("--after", required=True, help="results.json del adapter")
     parser.add_argument("--output", required=True, help="Informe markdown de salida")
+    parser.add_argument(
+        "--json-output", default=None, help="Ruta opcional para el resumen JSON estructurado"
+    )
+    parser.add_argument(
+        "--fail-on-regression",
+        action="store_true",
+        help="Devuelve código de salida 1 si hay regresiones robustas (o regresiones sin rangos)",
+    )
     args = parser.parse_args(argv)
 
-    report = build_report(_load_results(args.before), _load_results(args.after))
+    before_data = _load_results(args.before)
+    after_data = _load_results(args.after)
+    report = build_report(before_data, after_data)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(report, encoding="utf-8")
     print(f"[report] informe escrito en {output_path}")
+
+    summary = build_summary_json(before_data, after_data)
+    if args.json_output:
+        json_path = Path(args.json_output)
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+        json_path.write_text(
+            json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(f"[report] resumen JSON escrito en {json_path}")
+
+    if args.fail_on_regression:
+        has_blocking = any(r["robust"] in (True, None) for r in summary["regressions"])
+        if has_blocking:
+            return 1
     return 0
 
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from adapterforge.eval.report import build_report
+from adapterforge.eval.report import build_report, build_summary_json, main, paired_stats_by_type
 from adapterforge.train.common import extract_loss_curve
 
 
@@ -75,3 +75,41 @@ def test_extract_loss_curve_ignores_non_loss_entries():
     assert first == 2.5
     assert last == 1.2
     assert extract_loss_curve([]) == (None, None)
+
+
+def test_paired_stats_by_type_and_cli_json_gate(tmp_path):
+    import json
+
+    before = _results("base", extract=0.40, qa=0.50, case_scores={"c1": 1.0, "c2": 0.2})
+    after = _results("adapter", extract=0.80, qa=0.70, case_scores={"c1": 0.5, "c2": 0.9})
+    by_type = paired_stats_by_type(before, after)
+    assert "extract" in by_type
+    assert by_type["extract"]["n"] == 2
+
+    summary = build_summary_json(before, after)
+    assert summary["regression_count"] == 1
+    assert summary["regressions"][0]["id"] == "c1"
+
+    b_file = tmp_path / "before.json"
+    a_file = tmp_path / "after.json"
+    out_md = tmp_path / "report.md"
+    out_json = tmp_path / "summary.json"
+    b_file.write_text(json.dumps(before), encoding="utf-8")
+    a_file.write_text(json.dumps(after), encoding="utf-8")
+
+    rc = main(
+        [
+            "--before",
+            str(b_file),
+            "--after",
+            str(a_file),
+            "--output",
+            str(out_md),
+            "--json-output",
+            str(out_json),
+            "--fail-on-regression",
+        ]
+    )
+    assert rc == 1
+    assert out_md.exists() and "### Incertidumbre por tipo de tarea" in out_md.read_text("utf-8")
+    assert json.loads(out_json.read_text("utf-8"))["regression_count"] == 1
