@@ -72,17 +72,27 @@ def _fit_context(messages: list[dict], count_tokens, budget: int) -> list[dict]:
     (dos o tres extractos del BOE con sus respuestas) fallaba en todos los
     turnos siguientes. El system y el último mensaje no se descartan nunca, y
     el historial que queda empieza siempre por un turno del usuario.
+
+    Cada mensaje se tokeniza una sola vez y el total se descuenta al descartar:
+    recalcularlo entero en cada vuelta era cuadrático, y el historial lo envía el
+    cliente por el endpoint público /chat (miles de turnos ocupaban la CPU del
+    Space durante minutos antes de llegar al modelo).
     """
     system, turns = messages[0], messages[1:]
+    costs = [count_tokens(m["content"]) + _PER_MESSAGE_OVERHEAD for m in turns]
+    total = count_tokens(system["content"]) + _PER_MESSAGE_OVERHEAD + sum(costs)
+    start = 0
 
-    def total(msgs: list[dict]) -> int:
-        return sum(count_tokens(m["content"]) + _PER_MESSAGE_OVERHEAD for m in msgs)
+    def drop_oldest() -> None:
+        nonlocal start, total
+        total -= costs[start]
+        start += 1
 
-    while len(turns) > 1 and total([system, *turns]) > budget:
-        turns = turns[1:]
-        while len(turns) > 1 and turns[0]["role"] != "user":
-            turns = turns[1:]
-    return [system, *turns]
+    while len(turns) - start > 1 and total > budget:
+        drop_oldest()
+        while len(turns) - start > 1 and turns[start]["role"] != "user":
+            drop_oldest()
+    return [system, *turns[start:]]
 
 
 def respond(message: str, history: list[dict]) -> str:
