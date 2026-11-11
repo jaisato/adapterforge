@@ -139,6 +139,11 @@ GGUF en `Jaisato/juristune-qwen3-4b-gguf`, que se publica aparte
 
 ### Corregido
 
+- La demo del Space no llegaba a construirse: `space/README.md` pedía Gradio
+  6.15.1 (`sdk_version`) y `space/requirements.txt` 6.16.0, y Hugging Face
+  instala las dos a la vez. `sdk_version` pasa a 6.16.0 y un test mantiene
+  iguales las dos versiones
+  ([#23](https://github.com/jaisato/adapterforge/pull/23)).
 - `data.format`: los ratios de split deben ser tres números finitos no
   negativos que sumen 1; cada registro se conserva exactamente una vez
   ([#5](https://github.com/jaisato/adapterforge/pull/5)).
