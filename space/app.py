@@ -7,6 +7,7 @@ llama-cpp-python. Sin GPU: pensado para contextos cortos y demos guiadas.
 from __future__ import annotations
 
 import os
+import threading
 
 import gradio as gr
 from huggingface_hub import hf_hub_download
@@ -43,6 +44,12 @@ print(f"[space] descargando {GGUF_REPO}/{GGUF_FILE}...")
 model_path = hf_hub_download(repo_id=GGUF_REPO, filename=GGUF_FILE)
 llm = Llama(model_path=model_path, n_ctx=N_CTX, n_threads=2, verbose=False)
 print("[space] modelo cargado.")
+
+# llama.cpp no admite que dos hilos usen a la vez el mismo contexto: aborta el
+# proceso entero (ggml_abort en set_rows), sin excepción que capturar. Gradio
+# llama a respond() desde varios hilos (los envíos del chat, los ejemplos y la
+# API pública), así que quien usa el modelo espera su turno.
+_MODEL_LOCK = threading.Lock()
 
 
 def _text(content: str | list | dict) -> str:
@@ -104,21 +111,23 @@ def respond(message: str, history: list[dict]) -> str:
         if turn.get("role") in ("user", "assistant"):
             messages.append({"role": turn["role"], "content": _text(turn["content"])})
     messages.append({"role": "user", "content": message})
-    messages = _fit_context(messages, _count_tokens, N_CTX - MAX_TOKENS)
-    try:
-        result = llm.create_chat_completion(
-            messages=messages,
-            temperature=0.3,
-            max_tokens=MAX_TOKENS,
-        )
-    except ValueError as exc:
-        # Solo queda el mensaje actual y aun así no cabe en la ventana.
-        if "context window" not in str(exc):
-            raise
-        return (
-            f"El texto es demasiado largo para esta demo en CPU (ventana de {N_CTX} "
-            "tokens). Prueba con un extracto más corto."
-        )
+    # El recorte también tokeniza con el modelo: va dentro del mismo turno.
+    with _MODEL_LOCK:
+        messages = _fit_context(messages, _count_tokens, N_CTX - MAX_TOKENS)
+        try:
+            result = llm.create_chat_completion(
+                messages=messages,
+                temperature=0.3,
+                max_tokens=MAX_TOKENS,
+            )
+        except ValueError as exc:
+            # Solo queda el mensaje actual y aun así no cabe en la ventana.
+            if "context window" not in str(exc):
+                raise
+            return (
+                f"El texto es demasiado largo para esta demo en CPU (ventana de {N_CTX} "
+                "tokens). Prueba con un extracto más corto."
+            )
     return result["choices"][0]["message"]["content"]
 
 
@@ -135,6 +144,12 @@ demo = gr.ChatInterface(
         "lenguaje llano. Repositorio: github.com/jaisato/adapterforge"
     ),
     examples=EXAMPLES,
+    # En Spaces, Gradio calcula por defecto todos los ejemplos al arrancar: tres
+    # generaciones seguidas en la CPU gratuita antes de atender a nadie. Con
+    # "lazy" cada ejemplo se calcula la primera vez que alguien lo usa y después
+    # se sirve guardado.
+    cache_examples=True,
+    cache_mode="lazy",
 )
 
 if __name__ == "__main__":
