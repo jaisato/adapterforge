@@ -144,6 +144,11 @@ GGUF en `Jaisato/juristune-qwen3-4b-gguf`, que se publica aparte
   instala las dos a la vez. `sdk_version` pasa a 6.16.0 y un test mantiene
   iguales las dos versiones
   ([#23](https://github.com/jaisato/adapterforge/pull/23)).
+- La demo del Space agotaba la memoria del constructor al compilar
+  `llama-cpp-python` 0.3.9 desde el código fuente («OOMKilled»).
+  `space/requirements.txt` fija ahora la rueda precompilada del proyecto, la
+  0.3.36, por URL y sha256, y un test impide volver a una versión que haya
+  que compilar ([#24](https://github.com/jaisato/adapterforge/pull/24)).
 - `data.format`: los ratios de split deben ser tres números finitos no
   negativos que sumen 1; cada registro se conserva exactamente una vez
   ([#5](https://github.com/jaisato/adapterforge/pull/5)).

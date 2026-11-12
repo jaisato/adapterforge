@@ -1,4 +1,8 @@
 # Demo CPU del Space (tier gratuito). Versiones fijadas para reproducibilidad.
 gradio==6.16.0
-llama-cpp-python==0.3.9
+# Rueda precompilada del propio proyecto (CPU, manylinux, cualquier Python 3),
+# fijada por URL y sha256. En PyPI solo hay código fuente, y compilarlo agota la
+# memoria del constructor del Space: el despliegue del 12-nov-2026 con la 0.3.9
+# acabó en «OOMKilled». La 0.3.9 no tiene rueda publicada.
+llama-cpp-python @ https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.36/llama_cpp_python-0.3.36-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl#sha256=c8a3e98093e950d7a770f794842e36f2db82b2933e8762ed7b5ffd435011e8e4
 huggingface_hub==0.36.2

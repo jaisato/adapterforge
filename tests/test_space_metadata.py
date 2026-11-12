@@ -32,3 +32,25 @@ def _gradio_fijado() -> str:
 
 def test_el_sdk_version_del_space_es_el_gradio_fijado_en_requirements():
     assert _sdk_version() == _gradio_fijado()
+
+
+def test_llama_cpp_python_es_una_rueda_precompilada_fijada_por_url_y_sha256():
+    """El constructor del Space no puede compilar llama-cpp-python: se queda sin
+    memoria («OOMKilled»). PyPI solo publica el código fuente, así que tiene que
+    instalarse la rueda de CPU que publica el propio proyecto en sus releases,
+    con su sha256 para que pip compruebe lo que descarga."""
+    requisitos = (SPACE / "requirements.txt").read_text(encoding="utf-8")
+    lineas = [linea for linea in requisitos.splitlines() if linea.startswith("llama-cpp-python")]
+    assert len(lineas) == 1, "llama-cpp-python debe aparecer una sola vez"
+
+    coincidencia = re.fullmatch(
+        r"llama-cpp-python @ https://github\.com/abetlen/llama-cpp-python/releases/download/"
+        r"v(?P<etiqueta>[0-9.]+)/llama_cpp_python-(?P<version>[0-9.]+)-py3-none-"
+        r"(?P<plataforma>[A-Za-z0-9_.]+)\.whl#sha256=(?P<sha256>[0-9a-f]{64})",
+        lineas[0],
+    )
+    assert coincidencia, f"se esperaba la rueda precompilada con su sha256, no {lineas[0]!r}"
+    assert coincidencia["etiqueta"] == coincidencia["version"]
+    # El Space corre en Linux x86_64 con glibc: ni musl ni otra arquitectura.
+    assert "manylinux" in coincidencia["plataforma"]
+    assert coincidencia["plataforma"].endswith("x86_64")
