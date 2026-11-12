@@ -149,6 +149,12 @@ GGUF en `Jaisato/juristune-qwen3-4b-gguf`, que se publica aparte
   `space/requirements.txt` fija ahora la rueda precompilada del proyecto, la
   0.3.36, por URL y sha256, y un test impide volver a una versión que haya
   que compilar ([#24](https://github.com/jaisato/adapterforge/pull/24)).
+- La demo del Space abortaba al generar cuando coincidían dos peticiones:
+  llama.cpp no admite dos hilos sobre el mismo contexto (`ggml_abort` en
+  `set_rows`) y, en Spaces, Gradio calculaba además los tres ejemplos al
+  arrancar. `respond()` hace pasar las generaciones de una en una, y cada
+  ejemplo se calcula la primera vez que alguien lo usa (`cache_mode="lazy"`)
+  ([#25](https://github.com/jaisato/adapterforge/pull/25)).
 - `data.format`: los ratios de split deben ser tres números finitos no
   negativos que sumen 1; cada registro se conserva exactamente una vez
   ([#5](https://github.com/jaisato/adapterforge/pull/5)).
