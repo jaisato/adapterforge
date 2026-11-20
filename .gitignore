@@ -57,3 +57,8 @@ data/processed/juristune*.jsonl
 
 # Log local de las ejecuciones del teacher: no se versiona
 teacher.log
+
+# Configuración local de herramientas de agentes (Claude Code, MCP): es de cada máquina,
+# lleva rutas del equipo de quien la genera y no forma parte del proyecto.
+.claude/
+.mcp.json
