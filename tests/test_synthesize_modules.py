@@ -8,8 +8,10 @@ teacher online con un cliente simulado (online), sin GPU ni red.
 
 from __future__ import annotations
 
+import random
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -17,6 +19,8 @@ from adapterforge.data import synthesize
 from adapterforge.data.extract import RawDocument
 from adapterforge.data.synthesize import cli, online, text
 from adapterforge.data.synthesize.examples import DEFAULT_BALANCE
+
+REPO_PROMPTS = Path(__file__).resolve().parents[1] / "prompts"
 
 
 def _make_doc(doc_id: str = "BOE-A-2026-99999", rango: str = "Real Decreto") -> RawDocument:
@@ -261,6 +265,67 @@ def test_synthesize_online_skips_llm_errors_and_tasks_without_instruction(tmp_pa
         prompts_dir=tmp_path,
     )
     # resumen: el primer doc falla (se omite), el segundo se emite;
-    # extraccion: sin pool de instrucción online, todas sus salidas se descartan.
+    # extraccion: sin contrato online, se omite ANTES de llamar al teacher
+    # (antes se pagaban sus llamadas para descartar después todas las salidas).
     assert [example.id for example in examples] == ["BOE-A-2026-00002-resumen"]
-    assert calls == 4
+    assert calls == 2
+
+
+def test_synthesize_online_default_tasks_skip_offline_only_ones(monkeypatch):
+    """Las tareas por defecto (las del README) funcionan con prompts/ del repo."""
+    import adapterforge.llm as llm
+
+    calls = 0
+
+    def fake_chat_complete(messages, model, **kwargs):
+        nonlocal calls
+        calls += 1
+        return "PREGUNTA: ¿Qué regula? RESPUESTA: Regula las pruebas unitarias."
+
+    monkeypatch.setattr(llm, "chat_complete", fake_chat_complete)
+    examples = online.synthesize_online(
+        [_make_doc()],
+        synthesize.SFT_TASKS,
+        model="stub/teacher",
+        backend="litellm",
+        api_base=None,
+        api_key=None,
+        prompts_dir=REPO_PROMPTS,
+    )
+    assert calls == len(online.ONLINE_TASKS)
+    assert {example.task for example in examples} <= set(online.ONLINE_TASKS)
+    assert "qa" in {example.task for example in examples}
+
+
+def test_synthesize_online_fails_before_calling_teacher(tmp_path, monkeypatch):
+    """Una plantilla que falta o ninguna tarea online fallan sin gastar llamadas."""
+    import adapterforge.llm as llm
+
+    (tmp_path / "resumen.md").write_text("Resume {{texto}}", encoding="utf-8")
+    calls = 0
+
+    def fake_chat_complete(messages, model, **kwargs):
+        nonlocal calls
+        calls += 1
+        return "Respuesta válida del teacher."
+
+    monkeypatch.setattr(llm, "chat_complete", fake_chat_complete)
+    kwargs = {
+        "model": "stub/teacher",
+        "backend": "litellm",
+        "api_base": None,
+        "api_key": None,
+        "prompts_dir": tmp_path,
+    }
+    with pytest.raises(FileNotFoundError, match="llano"):
+        online.synthesize_online([_make_doc()], ("resumen", "llano"), **kwargs)
+    with pytest.raises(ValueError, match="contrato online"):
+        online.synthesize_online([_make_doc()], ("extraccion",), **kwargs)
+    assert calls == 0
+
+
+def test_online_tasks_have_a_coherent_instruction():
+    rng = random.Random(0)
+    for task in online.ONLINE_TASKS:
+        assert task == "qa" or online._online_instruction(task, _make_doc(), rng)
+        assert task in synthesize.SFT_TASKS
