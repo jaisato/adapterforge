@@ -194,6 +194,48 @@ def test_synthesize_online_parses_qa_and_discards_contract_violations(tmp_path, 
     assert len(seen_prompts) == 4
 
 
+def test_synthesize_online_window_starts_at_first_article(tmp_path, monkeypatch):
+    """La ventana del teacher incluye el artículo 1 (índice 0) y respeta duplicados."""
+    import adapterforge.llm as llm
+
+    _write_templates(tmp_path)
+    doc = _make_doc("BOE-A-2026-00001")
+    # Numeración repetida (norma que modifica otra): dos «Artículo 1.».
+    duplicated = doc.model_copy(
+        update={
+            "id": "BOE-A-2026-00003",
+            "texto": doc.texto + " Artículo 1. Modificación. Se modifica el anexo de otra norma.",
+        }
+    )
+    seen_prompts: list[str] = []
+
+    def fake_chat_complete(messages, model, **kwargs):
+        seen_prompts.append(messages[0]["content"])
+        return "PREGUNTA: ¿Qué regula? RESPUESTA: Regula las pruebas unitarias."
+
+    monkeypatch.setattr(llm, "chat_complete", fake_chat_complete)
+    examples = online.synthesize_online(
+        [doc, duplicated],
+        ("qa",),
+        model="stub/teacher",
+        backend="openai",
+        api_base="http://localhost:1/v1",
+        api_key=None,
+        prompts_dir=tmp_path,
+    )
+
+    by_id = {example.id: example for example in examples}
+    first = by_id["BOE-A-2026-00001-qa"].input
+    assert "Artículo 1. Objeto." in first
+    assert "Artículo 2. Plazos." in first
+    second = by_id["BOE-A-2026-00003-qa"].input
+    assert "Artículo 1. Objeto." in second
+    assert "Artículo 1. Modificación." in second
+    assert all(
+        example.input in prompt for example, prompt in zip(examples, seen_prompts, strict=True)
+    )
+
+
 def test_synthesize_online_skips_llm_errors_and_tasks_without_instruction(tmp_path, monkeypatch):
     import adapterforge.llm as llm
 

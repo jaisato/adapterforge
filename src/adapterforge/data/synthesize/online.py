@@ -97,7 +97,11 @@ def synthesize_online(
         template = load_prompt_template(prompts_dir, task)
         for index, doc in enumerate(docs, start=1):
             _, articles = split_articles(doc.texto)
-            needed = [a.number for a in articles]
+            # compose_window recibe ÍNDICES en ``articles``, no números de
+            # artículo: con los números (1..N) se saltaba siempre el índice 0
+            # (el artículo 1, el «Objeto») y, con numeración repetida (normas
+            # que modifican otras), metía en la ventana artículos equivocados.
+            needed = list(range(len(articles)))
             window = compose_window(doc, articles, needed, counter, token_budget)
             prompt = render_prompt(template, doc, texto=window)
             try:
