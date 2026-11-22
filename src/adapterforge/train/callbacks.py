@@ -17,7 +17,8 @@ class AbortOnNonFiniteLoss(TrainerCallback):
     nada se guarde.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, label: str = "sft") -> None:
+        self.label = label  # prefijo del log: sft o dpo
         self.diverged = False
         self.bad_step: int | None = None
 
@@ -32,7 +33,7 @@ class AbortOnNonFiniteLoss(TrainerCallback):
                 control.should_training_stop = True
                 control.should_save = False
                 print(
-                    f"[sft] ABORTADO: {key} no finita ({value}) en el paso "
+                    f"[{self.label}] ABORTADO: {key} no finita ({value}) en el paso "
                     f"{state.global_step}; el run queda marcado como divergido"
                 )
         return control

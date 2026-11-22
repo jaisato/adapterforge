@@ -66,19 +66,19 @@ EARLY_STOPPING_PATIENCE = 4  # evals sin mejora (4 x 50 pasos) antes de parar
 _FORBIDDEN_RENDER_TOKENS = ("<think>", "</think>", "<tool_call>", "</tool_call>")
 
 
-def _assert_clean_render(texts: list[str]) -> None:
+def _assert_clean_render(texts: list[str], label: str = "sft") -> None:
     """Aborta si el render de muestra está contaminado o mal formado."""
     for text in texts:
         for token in _FORBIDDEN_RENDER_TOKENS:
             if token in text:
                 raise SystemExit(
-                    f"[sft] ABORTADO: el render contiene {token!r} — el chat "
+                    f"[{label}] ABORTADO: el render contiene {token!r} — el chat "
                     "template no es el oficial de Instruct-2507. Ningún "
                     "adapter debe entrenarse así (defecto v1/v2/v2b)."
                 )
         if "<|im_start|>assistant\n" not in text:
             raise SystemExit(
-                "[sft] ABORTADO: el render no contiene el turno de assistant "
+                f"[{label}] ABORTADO: el render no contiene el turno de assistant "
                 "esperado; revisa el chat template y el formato de mensajes."
             )
 
