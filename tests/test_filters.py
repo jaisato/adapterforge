@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import pytest
+
 from adapterforge.data.filter import (
     apply_heuristics,
+    apply_judge,
     copy_ratio,
     dedup_by_jaccard,
     is_spanish_basic,
+    judge_score,
     stopword_ratio,
 )
 
@@ -124,3 +128,103 @@ def test_apply_heuristics_length_bounds():
     kept, reasons = apply_heuristics(records, {})
     assert not kept
     assert reasons["too_long"] == 1
+
+
+# ---------------------------------------------------------------------------
+# LLM-judge (cliente simulado, sin red)
+# ---------------------------------------------------------------------------
+
+_JUDGED = {"id": "x", "instruction": "Resume la norma", "input": "doc", "response": "resp"}
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("4", 4),
+        ("**3**", 3),
+        ("Nota: 5/5", 5),
+        ("La nota es 2.", 2),
+        # El razonamiento no cuenta: antes puntuaba 1 (el primer dígito 1-5).
+        ("<think>Comparo con los niveles 1, 2 y 3</think>\n4", 4),
+    ],
+)
+def test_judge_score_reads_the_grade(monkeypatch, raw, expected):
+    import adapterforge.llm as llm
+
+    monkeypatch.setattr(llm, "chat_complete", lambda *args, **kwargs: raw)
+    assert judge_score(_JUDGED, model="stub/judge") == expected
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "10/10",  # fuera de escala: antes puntuaba 1 (el «1» de «10»)
+        "0",
+        "4.5",
+        "Excelente",
+        "<think>Reviso el formato y la fidelidad",  # razonamiento truncado
+    ],
+)
+def test_judge_score_rejects_unreadable_grades(monkeypatch, raw):
+    import adapterforge.llm as llm
+
+    monkeypatch.setattr(llm, "chat_complete", lambda *args, **kwargs: raw)
+    with pytest.raises(ValueError, match="nota 1-5"):
+        judge_score(_JUDGED, model="stub/judge")
+
+
+def test_apply_judge_survives_per_record_failures(monkeypatch):
+    import adapterforge.llm as llm
+
+    answers = iter([llm.LlmError("timeout simulado"), "4", "Excelente", "2"])
+
+    def fake_chat_complete(*args, **kwargs):
+        answer = next(answers)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer
+
+    monkeypatch.setattr(llm, "chat_complete", fake_chat_complete)
+    records = [dict(_JUDGED, id=f"r{i}") for i in range(4)]
+    kept, removed, errors = apply_judge(records, model="stub/judge", min_score=3)
+    assert [record["id"] for record in kept] == ["r1"]
+    assert kept[0]["judge_score"] == 4
+    assert removed == 1  # r3: nota 2 < 3
+    assert errors == 2  # r0: fallo de transporte; r2: nota ilegible
+
+
+def test_main_reports_judge_errors(tmp_path, monkeypatch):
+    import json
+
+    import adapterforge.llm as llm
+    from adapterforge.data import filter as filter_module
+
+    response = (
+        "La norma regula las ayudas del programa y establece que las solicitudes "
+        "se presentan en un plazo de tres meses desde la convocatoria oficial."
+    )
+    records = [
+        {"id": f"r{i}", "doc_id": "", "task": "resumen",
+         "instruction": f"Resume la disposición número {i} con detalle",
+         "response": f"{response} Caso {word}."}
+        for i, word in enumerate(("uno", "dos", "tres"))
+    ]
+    input_path = tmp_path / "in.jsonl"
+    input_path.write_text(
+        "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records), encoding="utf-8"
+    )
+    corpus_path = tmp_path / "corpus.jsonl"
+    corpus_path.write_text("", encoding="utf-8")
+    answers = iter(["5", "<think>sin cerrar", "4"])
+    monkeypatch.setattr(llm, "chat_complete", lambda *args, **kwargs: next(answers))
+
+    report_path = tmp_path / "report.json"
+    assert filter_module.main([
+        "--input", str(input_path), "--corpus", str(corpus_path),
+        "--output", str(tmp_path / "out.jsonl"), "--report", str(report_path),
+        "--judge", "--judge-model", "stub/judge", "--dedup-threshold", "1.01",
+    ]) == 0
+    stats = json.loads(report_path.read_text(encoding="utf-8"))
+    assert stats["kept"] == 2
+    assert stats["removed_judge"] == 0
+    assert stats["removed_judge_errors"] == 1

@@ -32,6 +32,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
+from adapterforge.eval.metrics import strip_response_artifacts
 from adapterforge.jsonl import read_jsonl, write_jsonl
 
 # Stopwords españolas frecuentes para el detector básico de idioma.
@@ -275,6 +276,9 @@ Responde ÚNICAMENTE con el número entero (1-5), sin texto adicional.
 """
 
 
+_JUDGE_GRADE = re.compile(r"(?<![\d.,])\d+(?![\d.,]?\d)")
+
+
 def judge_score(
     record: dict[str, Any],
     *,
@@ -300,8 +304,11 @@ def judge_score(
         temperature=0.0,
         max_tokens=8,
     )
-    match = re.search(r"[1-5]", raw)
-    if not match:
+    # La nota es el primer entero suelto de la respuesta, ya sin bloques
+    # <think>: con r"[1-5]" a secas, «<think>comparo 1, 2 y 3</think>2» puntuaba
+    # 1 y un «10/10» fuera de escala también (el «1» de «10»).
+    match = _JUDGE_GRADE.search(strip_response_artifacts(raw))
+    if not match or not 1 <= int(match.group(0)) <= 5:
         raise ValueError(f"El juez no devolvió una nota 1-5: {raw!r}")
     return int(match.group(0))
 
@@ -314,21 +321,36 @@ def apply_judge(
     backend: str = "litellm",
     api_base: str | None = None,
     api_key: str | None = None,
-) -> tuple[list[dict[str, Any]], int]:
-    """Filtra por nota del juez; anota ``judge_score`` en cada registro."""
+) -> tuple[list[dict[str, Any]], int, int]:
+    """Filtra por nota del juez; anota ``judge_score`` en cada registro.
+
+    Devuelve (aceptados, descartados por nota, descartados por error). Un
+    fallo del juez en un ejemplo (transporte o nota ilegible) no aborta el
+    lote, como en la síntesis online: ese ejemplo no se ha podido verificar
+    y se descarta, contado aparte. Si el juez falla en masa, el gate de
+    composición por tarea de :func:`main` corta el filtrado.
+    """
+    from adapterforge.llm import LlmError  # perezoso
+
     kept: list[dict[str, Any]] = []
     removed = 0
+    errors = 0
     for record in records:
-        score = judge_score(
-            record, model=model, backend=backend, api_base=api_base, api_key=api_key
-        )
+        try:
+            score = judge_score(
+                record, model=model, backend=backend, api_base=api_base, api_key=api_key
+            )
+        except (LlmError, ValueError) as exc:
+            errors += 1
+            print(f"[filter] juez sin nota para {record.get('id', '?')} ({exc}); se descarta")
+            continue
         record = dict(record)
         record["judge_score"] = score
         if score >= min_score:
             kept.append(record)
         else:
             removed += 1
-    return kept, removed
+    return kept, removed, errors
 
 
 # ---------------------------------------------------------------------------
@@ -368,11 +390,12 @@ def main(argv: list[str] | None = None) -> int:
     kept, dedup_removed = dedup_by_jaccard(kept, threshold=args.dedup_threshold)
 
     judge_removed = 0
+    judge_errors = 0
     if args.judge:
         from adapterforge.settings import get_settings  # perezoso, coherente con el resto
 
         judge_model = args.judge_model or get_settings().judge_model
-        kept, judge_removed = apply_judge(
+        kept, judge_removed, judge_errors = apply_judge(
             kept,
             model=judge_model,
             min_score=args.judge_min_score,
@@ -413,6 +436,7 @@ def main(argv: list[str] | None = None) -> int:
         "removed_heuristics": reasons,
         "removed_dedup": dedup_removed,
         "removed_judge": judge_removed,
+        "removed_judge_errors": judge_errors,
         "task_drop": task_drop,
     }
     if args.report:
