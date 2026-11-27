@@ -164,7 +164,8 @@ GGUF en `Jaisato/juristune-qwen3-4b-gguf`, que se publica aparte
   defecto, hacía todas las llamadas al teacher y moría al final sin
   escribir nada (no existe `prompts/extraccion.md`).
 - `data.filter --judge`: la nota se lee sin los bloques `<think>` y debe ser
-  un entero de 1 a 5 (antes «10/10» o un razonamiento con «1» puntuaban 1),
+  un entero de 1 a 5 (antes «10/10» o un razonamiento con «1» puntuaban 1;
+  una nota decimal como «2.5/5» es ilegible, no un 5),
   y un fallo del juez en un ejemplo lo descarta y se cuenta
   (`removed_judge_errors`) en vez de abortar el filtrado entero.
 - `train.dpo` aplica las salvaguardas de `train.sft`: fuerza el chat

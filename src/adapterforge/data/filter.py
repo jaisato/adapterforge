@@ -276,7 +276,8 @@ Responde ÚNICAMENTE con el número entero (1-5), sin texto adicional.
 """
 
 
-_JUDGE_GRADE = re.compile(r"(?<![\d.,])\d+(?![\d.,]?\d)")
+# Primer número de la respuesta, decimales incluidos («2.5», «1,5», «.5»).
+_JUDGE_GRADE = re.compile(r"[.,]?\d+(?:[.,]\d+)*", re.ASCII)
 
 
 def judge_score(
@@ -304,13 +305,15 @@ def judge_score(
         temperature=0.0,
         max_tokens=8,
     )
-    # La nota es el primer entero suelto de la respuesta, ya sin bloques
-    # <think>: con r"[1-5]" a secas, «<think>comparo 1, 2 y 3</think>2» puntuaba
-    # 1 y un «10/10» fuera de escala también (el «1» de «10»).
+    # La nota es el primer número de la respuesta, ya sin bloques <think>, y
+    # tiene que ser un entero de 1 a 5: con r"[1-5]" a secas, «<think>comparo
+    # 1, 2 y 3</think>2» puntuaba 1 y un «10/10» fuera de escala también (el «1»
+    # de «10»). Un decimal no se salta: en «2.5/5» la nota no es el 5 de la escala.
     match = _JUDGE_GRADE.search(strip_response_artifacts(raw))
-    if not match or not 1 <= int(match.group(0)) <= 5:
+    grade = match.group(0) if match else ""
+    if not grade.isdigit() or not 1 <= int(grade) <= 5:
         raise ValueError(f"El juez no devolvió una nota 1-5: {raw!r}")
-    return int(match.group(0))
+    return int(grade)
 
 
 def apply_judge(

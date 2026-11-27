@@ -161,6 +161,12 @@ def test_judge_score_reads_the_grade(monkeypatch, raw, expected):
         "10/10",  # fuera de escala: antes puntuaba 1 (el «1» de «10»)
         "0",
         "4.5",
+        # Una nota decimal no se salta para leer la escala: antes puntuaban 5.
+        "2.5/5",
+        "1,5/5",
+        "Nota: 2.5 de 5",
+        "0.5/5",
+        ".5/5",
         "Excelente",
         "<think>Reviso el formato y la fidelidad",  # razonamiento truncado
     ],
