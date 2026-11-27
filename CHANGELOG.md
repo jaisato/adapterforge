@@ -171,6 +171,10 @@ GGUF en `Jaisato/juristune-qwen3-4b-gguf`, que se publica aparte
   template oficial de Qwen3-Instruct-2507 (DPOTrainer usaba el thinking del
   mirror de Unsloth), verifica un render de muestra y, ante una loss no
   finita, sale con error sin guardar el adapter.
+- El corte por loss no finita (`AbortOnNonFiniteLoss`, en SFT y DPO) no
+  saltaba nunca: con `logging_nan_inf_filter=True`, el valor por defecto, el
+  bucle de Trainer cambiaba la NaN por la media de la ventana antes de que el
+  callback la viera. Ahora el callback apaga ese filtro al empezar.
 - `data.format`: los ratios de split deben ser tres números finitos no
   negativos que sumen 1; cada registro se conserva exactamente una vez
   ([#5](https://github.com/jaisato/adapterforge/pull/5)).

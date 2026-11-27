@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from adapterforge.config import load_experiment_config
@@ -56,6 +58,65 @@ def test_abort_on_non_finite_loss_flags_and_stops():
     assert callback.bad_step == 341
     assert control.should_training_stop is True
     assert control.should_save is False
+
+
+def test_abort_on_non_finite_loss_turns_off_the_trainer_nan_filter():
+    # Sin torch (el CI): lo que hace el callback al empezar el entrenamiento.
+    pytest.importorskip("transformers")
+    from adapterforge.train.callbacks import AbortOnNonFiniteLoss
+
+    args = SimpleNamespace(logging_nan_inf_filter=True)
+    AbortOnNonFiniteLoss().on_train_begin(args, _State(), _Control())
+    assert args.logging_nan_inf_filter is False
+
+
+def test_abort_on_non_finite_loss_sees_a_nan_through_the_real_trainer_loop(tmp_path):
+    """TrainingArguments (y SFTConfig/DPOConfig) traen logging_nan_inf_filter=True: el
+    bucle de Trainer cambia una loss NaN por la media de la ventana ANTES de on_log, así
+    que el callback nunca la veía y el adapter divergido se guardaba."""
+    torch = pytest.importorskip("torch")
+    transformers = pytest.importorskip("transformers")
+    from adapterforge.train.callbacks import AbortOnNonFiniteLoss
+
+    class Tiny(torch.nn.Module):
+        def __init__(self) -> None:
+            super().__init__()
+            self.w = torch.nn.Parameter(torch.ones(1))
+            self.calls = 0
+
+        def forward(self, x):
+            self.calls += 1
+            loss = (self.w * x).sum()
+            return {"loss": loss * float("nan") if self.calls >= 3 else loss}
+
+    class Rows(torch.utils.data.Dataset):
+        def __len__(self) -> int:
+            return 8
+
+        def __getitem__(self, i):
+            return {"x": torch.ones(1)}
+
+    args = transformers.TrainingArguments(
+        output_dir=str(tmp_path),
+        max_steps=6,
+        logging_steps=1,
+        per_device_train_batch_size=1,
+        save_strategy="no",
+        report_to=[],
+        use_cpu=True,
+        disable_tqdm=True,
+        dataloader_pin_memory=False,
+    )
+    assert args.logging_nan_inf_filter is True  # el valor por defecto que tapaba la NaN
+    guard = AbortOnNonFiniteLoss(label="dpo")
+    trainer = transformers.Trainer(
+        model=Tiny(), args=args, train_dataset=Rows(), callbacks=[guard]
+    )
+    trainer.train()
+
+    assert guard.diverged
+    assert guard.bad_step == 3
+    assert trainer.state.global_step == 3  # se para en el primer paso con NaN
 
 
 def test_git_sha_available_in_repo():

@@ -15,12 +15,22 @@ class AbortOnNonFiniteLoss(TrainerCallback):
     ``save_model``. Este callback corta en cuanto aparece una loss (de train
     o de eval) no finita y deja el run marcado como divergido ANTES de que
     nada se guarde.
+
+    Necesita ver la loss cruda: con ``logging_nan_inf_filter=True`` (el valor
+    por defecto de TrainingArguments, SFTConfig y DPOConfig) el bucle de
+    Trainer cambia una loss NaN/inf por la media de la ventana antes de
+    ``on_log``, y el callback no la veía nunca. Por eso lo apaga al empezar.
     """
 
     def __init__(self, label: str = "sft") -> None:
         self.label = label  # prefijo del log: sft o dpo
         self.diverged = False
         self.bad_step: int | None = None
+
+    def on_train_begin(self, args, state, control, **kwargs):  # noqa: ANN001
+        # El bucle lee este mismo objeto args en cada paso.
+        args.logging_nan_inf_filter = False
+        return control
 
     def on_log(self, args, state, control, logs=None, **kwargs):  # noqa: ANN001
         if not logs:
