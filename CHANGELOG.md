@@ -155,6 +155,27 @@ GGUF en `Jaisato/juristune-qwen3-4b-gguf`, que se publica aparte
   arrancar. `respond()` hace pasar las generaciones de una en una, y cada
   ejemplo se calcula la primera vez que alguien lo usa (`cache_mode="lazy"`)
   ([#25](https://github.com/jaisato/adapterforge/pull/25)).
+- `data.synthesize` (online): la ventana que ve el teacher, y que se guarda
+  como `input`, no incluía nunca el artículo 1: se pasaban a
+  `compose_window` números de artículo en vez de índices.
+- `data.synthesize` (online): las tareas sin contrato online (`extraccion`)
+  se omiten con aviso antes de la primera llamada y todas las plantillas se
+  cargan antes de empezar. El comando del README, con las tareas por
+  defecto, hacía todas las llamadas al teacher y moría al final sin
+  escribir nada (no existe `prompts/extraccion.md`).
+- `data.filter --judge`: la nota se lee sin los bloques `<think>` y debe ser
+  un entero de 1 a 5 (antes «10/10» o un razonamiento con «1» puntuaban 1;
+  una nota decimal como «2.5/5» es ilegible, no un 5),
+  y un fallo del juez en un ejemplo lo descarta y se cuenta
+  (`removed_judge_errors`) en vez de abortar el filtrado entero.
+- `train.dpo` aplica las salvaguardas de `train.sft`: fuerza el chat
+  template oficial de Qwen3-Instruct-2507 (DPOTrainer usaba el thinking del
+  mirror de Unsloth), verifica un render de muestra y, ante una loss no
+  finita, sale con error sin guardar el adapter.
+- El corte por loss no finita (`AbortOnNonFiniteLoss`, en SFT y DPO) no
+  saltaba nunca: con `logging_nan_inf_filter=True`, el valor por defecto, el
+  bucle de Trainer cambiaba la NaN por la media de la ventana antes de que el
+  callback la viera. Ahora el callback apaga ese filtro al empezar.
 - `data.format`: los ratios de split deben ser tres números finitos no
   negativos que sumen 1; cada registro se conserva exactamente una vez
   ([#5](https://github.com/jaisato/adapterforge/pull/5)).
@@ -188,6 +209,10 @@ GGUF en `Jaisato/juristune-qwen3-4b-gguf`, que se publica aparte
 - MLflow 2.22.4 (antes 2.22.0) en la imagen del servidor y en la de
   entrenamiento: corrige PYSEC-2025-52 y PYSEC-2026-1640 sin salir de la
   serie 2.x; el resto de avisos de MLflow exige la serie 3.
+- El extra `train` exige `torch >= 2.6` (antes 2.5): torch 2.5 está afectado
+  por CVE-2025-32434 (`torch.load` con `weights_only=True` puede ejecutar
+  código; lo usa la reanudación `--resume`). La imagen de entrenamiento ya
+  fijaba 2.6.0.
 
 [Unreleased]: https://github.com/jaisato/adapterforge/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/jaisato/adapterforge/releases/tag/v0.1.0

@@ -42,6 +42,11 @@ _ONLINE_INSTRUCTION_POOLS: dict[str, tuple[str, ...]] = {
     "obligaciones": (_OBLIGACIONES_JSON_INSTRUCTION,),
 }
 
+# Tareas con contrato online: ``qa`` (la instrucción es la PREGUNTA del
+# teacher), ``llano`` y las que tienen pool de instrucciones. ``extraccion``
+# solo existe offline (ni plantilla en prompts/ ni instrucción coherente).
+ONLINE_TASKS: tuple[str, ...] = ("resumen", "qa", "obligaciones", "llano")
+
 
 def _online_instruction(task: str, doc: RawDocument, rng: random.Random) -> str | None:
     """Instrucción coherente con el contrato de la plantilla, o None."""
@@ -86,18 +91,38 @@ def synthesize_online(
     coincide exactamente con lo que el teacher leyó. Las salidas de la tarea
     ``qa`` se parsean estructuralmente (PREGUNTA:/RESPUESTA:) y las que no
     cumplen el contrato se descartan (contadas en el log).
+
+    Antes de la primera llamada se omiten (con aviso) las tareas sin contrato
+    online (fuera de :data:`ONLINE_TASKS`) y se cargan todas las plantillas:
+    una tarea sin plantilla falla de inmediato, no después de pagar las
+    llamadas de las anteriores. ``ValueError`` si no queda ninguna tarea.
     """
     from adapterforge.llm import LlmError, chat_complete  # perezoso
+
+    skipped = [task for task in tasks if task not in ONLINE_TASKS]
+    if skipped:
+        print(f"[synthesize] tareas sin contrato online (solo --offline), se omiten: {skipped}")
+    online_tasks = [task for task in tasks if task in ONLINE_TASKS]
+    if not online_tasks:
+        raise ValueError(
+            f"Ninguna tarea de {list(tasks)} tiene contrato online "
+            f"(válidas: {ONLINE_TASKS}); usa --offline para el resto"
+        )
+    templates = {task: load_prompt_template(prompts_dir, task) for task in online_tasks}
 
     counter = counter or TokenCounter()
     examples: list[SftExample] = []
     rejected = 0
     errors = 0
-    for task in tasks:
-        template = load_prompt_template(prompts_dir, task)
+    for task in online_tasks:
+        template = templates[task]
         for index, doc in enumerate(docs, start=1):
             _, articles = split_articles(doc.texto)
-            needed = [a.number for a in articles]
+            # compose_window recibe ÍNDICES en ``articles``, no números de
+            # artículo: con los números (1..N) se saltaba siempre el índice 0
+            # (el artículo 1, el «Objeto») y, con numeración repetida (normas
+            # que modifican otras), metía en la ventana artículos equivocados.
+            needed = list(range(len(articles)))
             window = compose_window(doc, articles, needed, counter, token_budget)
             prompt = render_prompt(template, doc, texto=window)
             try:

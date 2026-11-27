@@ -42,7 +42,7 @@ dev = [
 # un entorno WSL2 con CUDA). Instalar torch con el índice CUDA adecuado:
 #   pip install torch --index-url https://download.pytorch.org/whl/cu124
 train = [
-    "torch>=2.5,<2.8",
+    "torch>=2.6,<2.8",
     "transformers>=4.51,<4.57",
     "trl>=0.17,<0.20",
     "peft>=0.15,<0.18",

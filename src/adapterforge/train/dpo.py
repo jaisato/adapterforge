@@ -7,6 +7,12 @@ y continúa el entrenamiento del adapter para mejorar formato y estilo.
 Con PEFT no hace falta un modelo de referencia separado: TRL desactiva el
 adapter para computar las log-probs de referencia (ahorro clave en 8 GB).
 
+Mismas salvaguardas que :mod:`adapterforge.train.sft`: el chat template
+OFICIAL de Qwen3-Instruct-2507 se fuerza antes de renderizar (DPOTrainer
+aplica el del tokenizer, y el del mirror de Unsloth es el thinking), un
+render de muestra con ``<think>``/``<tool_call>`` aborta, y una loss no
+finita para el run sin guardar el adapter.
+
 Uso::
 
     python -m adapterforge.train.dpo --config configs/dpo_qwen3-4b.yaml
@@ -33,9 +39,11 @@ from adapterforge.train.common import (
     emit_vram_warnings,
     extract_loss_curve,
     filter_kwargs_for_dataclass,
+    load_official_chat_template,
     log_to_mlflow,
     save_metrics,
 )
+from adapterforge.train.sft import _assert_clean_render
 
 SMOKE_MAX_STEPS = 30
 
@@ -46,6 +54,7 @@ def run_dpo(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
     from datasets import load_dataset
     from trl import DPOConfig, DPOTrainer
 
+    from adapterforge.train.callbacks import AbortOnNonFiniteLoss
     from adapterforge.train.runtime import load_model_and_tokenizer
 
     emit_vram_warnings(cfg)
@@ -54,10 +63,26 @@ def run_dpo(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     model, tokenizer, used_unsloth = load_model_and_tokenizer(cfg)
+    # DPOTrainer renderiza prompt/chosen/rejected con el template del
+    # tokenizer, y el del mirror de Unsloth es el thinking: sin forzar el
+    # oficial, DPO volvería a quemar «<think>» en los pesos (defecto v1/v2/v2b).
+    tokenizer.chat_template = load_official_chat_template()
+    print("[dpo] chat template oficial de Qwen3-Instruct-2507 forzado (sin <think>)")
 
     dataset = load_dataset("json", data_files=str(cfg.dataset_path), split="train")
     if "meta" in dataset.column_names:
         dataset = dataset.remove_columns(["meta"])
+    samples = [dataset[i] for i in range(min(5, len(dataset)))]
+    _assert_clean_render(
+        [
+            tokenizer.apply_chat_template(
+                list(sample["prompt"]) + list(sample["chosen"]), tokenize=False
+            )
+            for sample in samples
+            if isinstance(sample.get("prompt"), list)  # formato conversacional
+        ],
+        label="dpo",
+    )
 
     cuda_available = torch.cuda.is_available()
     bf16 = cuda_available and torch.cuda.is_bf16_supported()
@@ -84,23 +109,44 @@ def run_dpo(cfg: ExperimentConfig, *, use_mlflow: bool = False) -> dict:
     }
     dpo_config = DPOConfig(**filter_kwargs_for_dataclass(DPOConfig, raw_kwargs))
 
+    abort_on_nan = AbortOnNonFiniteLoss(label="dpo")
+    trainer_kwargs = {
+        "model": model,
+        "args": dpo_config,
+        "train_dataset": dataset,
+        "callbacks": [abort_on_nan],
+    }
     try:
-        trainer = DPOTrainer(
-            model=model,
-            args=dpo_config,
-            train_dataset=dataset,
-            processing_class=tokenizer,
-        )
+        trainer = DPOTrainer(processing_class=tokenizer, **trainer_kwargs)
     except TypeError:
-        trainer = DPOTrainer(
-            model=model, args=dpo_config, train_dataset=dataset, tokenizer=tokenizer
-        )
+        trainer = DPOTrainer(tokenizer=tokenizer, **trainer_kwargs)
 
     started = time.monotonic()
     trainer.train()
     runtime_s = time.monotonic() - started
 
     loss_initial, loss_final = extract_loss_curve(trainer.state.log_history)
+    # Como en SFT: un run divergido deja sus métricas y sale != 0 ANTES de
+    # save_model, para que ningún adapter con NaN llegue a merge/GGUF/Hub.
+    if abort_on_nan.diverged:
+        metrics = build_run_metrics(
+            cfg,
+            phase="dpo",
+            steps=int(trainer.state.global_step),
+            loss_initial=loss_initial,
+            loss_final=loss_final,
+            runtime_s=runtime_s,
+            used_unsloth=used_unsloth,
+            extra={
+                "dpo_beta": dpo_settings.beta,
+                "diverged": True,
+                "diverged_step": abort_on_nan.bad_step,
+            },
+        )
+        save_metrics(output_dir / "metrics.json", metrics)
+        print("[dpo] ERROR: la loss divergió; NO se guarda ningún adapter")
+        raise SystemExit(1)
+
     adapter_dir = output_dir / "adapter"
     trainer.save_model(str(adapter_dir))
     tokenizer.save_pretrained(str(adapter_dir))
